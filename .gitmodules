@@ -1,0 +1,6 @@
+[submodule "external_src/aiobungie"]
+	path = external_src/aiobungie
+	url = https://github.com/nxtlo/aiobungie.git
+[submodule "external_src/pydest"]
+	path = external_src/pydest
+	url = https://github.com/jgayfer/pydest.git

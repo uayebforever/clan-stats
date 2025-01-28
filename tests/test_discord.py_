@@ -1,0 +1,7 @@
+from clan_stats.discord import *
+
+def test_group_from_copy_paste_file():
+
+    result = group_from_copy_paste_file("clan_list.txt")
+
+    assert DiscordMember("uayebforever#2982", "uayebforever") in result

@@ -1,0 +1,18 @@
+from datetime import timedelta
+
+import aiobungie
+
+from clan_stats.api_wrapper import activity_from_json, _date_from_iso
+from clan_stats.types import TimePeriod
+
+
+def test_activity_from_json():
+    example_data = {'period': '2023-07-03T01:55:59Z', 'activityDetails': {'referenceId': 2381413764, 'directorActivityHash': 2381413764, 'instanceId': '13522993727', 'mode': 4, 'modes': [7, 4], 'isPrivate': False, 'membershipType': 1}, 'values': {'assists': {'statId': 'assists', 'basic': {'value': 175.0, 'displayValue': '175'}}, 'completed': {'statId': 'completed', 'basic': {'value': 1.0, 'displayValue': 'Yes'}}, 'deaths': {'statId': 'deaths', 'basic': {'value': 37.0, 'displayValue': '37'}}, 'kills': {'statId': 'kills', 'basic': {'value': 512.0, 'displayValue': '512'}}, 'opponentsDefeated': {'statId': 'opponentsDefeated', 'basic': {'value': 687.0, 'displayValue': '687'}}, 'efficiency': {'statId': 'efficiency', 'basic': {'value': 18.56756756756757, 'displayValue': '18.57'}}, 'killsDeathsRatio': {'statId': 'killsDeathsRatio', 'basic': {'value': 13.837837837837839, 'displayValue': '13.84'}}, 'killsDeathsAssists': {'statId': 'killsDeathsAssists', 'basic': {'value': 16.2027027027027, 'displayValue': '16.20'}}, 'score': {'statId': 'score', 'basic': {'value': 0.0, 'displayValue': '0'}}, 'activityDurationSeconds': {'statId': 'activityDurationSeconds', 'basic': {'value': 9446.0, 'displayValue': '2h 37m'}}, 'team': {'statId': 'team', 'basic': {'value': 0.0, 'displayValue': ''}}, 'completionReason': {'statId': 'completionReason', 'basic': {'value': 0.0, 'displayValue': 'Objective Completed'}}, 'fireteamId': {'statId': 'fireteamId', 'basic': {'value': 4.498243766388884e+18, 'displayValue': '-2147483648'}}, 'startSeconds': {'statId': 'startSeconds', 'basic': {'value': 0.0, 'displayValue': '0m 0s'}}, 'timePlayedSeconds': {'statId': 'timePlayedSeconds', 'basic': {'value': 9446.0, 'displayValue': '2h 37m'}}, 'playerCount': {'statId': 'playerCount', 'basic': {'value': 7.0, 'displayValue': '7'}}, 'teamScore': {'statId': 'teamScore', 'basic': {'value': 0.0, 'displayValue': '0'}}}}
+
+    actual = activity_from_json(example_data)
+
+    assert actual.time_period == TimePeriod(_date_from_iso("2023-07-03T01:55:59Z"), timedelta(seconds=9446))
+    assert actual.primary_mode == aiobungie.GameMode.RAID
+    assert actual.modes == [aiobungie.GameMode.ALLPVE, aiobungie.GameMode.RAID]
+
+

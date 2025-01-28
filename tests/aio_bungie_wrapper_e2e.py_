@@ -1,0 +1,66 @@
+import json
+from datetime import datetime, timedelta
+
+import pytest
+from aiobungie import GameMode
+
+from clan_stats.api_wrappers.aiobungie.aiobungie_wrapper import AioBungieApiWrapper
+from clan_stats.types import Clan
+
+
+@pytest.fixture(scope="class")
+def aio_bungie(bungie_api_key) -> AioBungieApiWrapper:
+    wrapper = AioBungieApiWrapper(bungie_api_key)
+    wrapper.init()
+    return wrapper
+
+
+class TestAioBungieWrapper(object):
+
+    @pytest.mark.skip
+    def test_fetch_clan(self, aio_bungie: AioBungieApiWrapper):
+        clan = aio_bungie.fetch_clan(4402352)
+        assert isinstance(clan, Clan)
+        assert clan.player_by_name("uayebforever#2982") is not None
+
+    @pytest.mark.skip
+    def test_fetch_activities(self, aio_bungie: AioBungieApiWrapper):
+        activities = aio_bungie.fetch_activities(4611686018469899232, 2305843009483904827, GameMode.ALLPVE,
+                                                 min_start_date=datetime.today() - timedelta(days=360))
+        assert len(activities) > 100
+
+    @pytest.mark.skip
+    def test_fetch_clan_activities(self, aio_bungie: AioBungieApiWrapper):
+        clan = aio_bungie.fetch_clan(4402352)
+        activities = aio_bungie.fetch_activities_for_all_characters(
+            clan.characters, GameMode.ALLPVE,
+            min_start_date=datetime.today() - timedelta(days=360))
+        assert len(activities) > 100
+
+    @pytest.mark.skip
+    def test_search_users(self, aio_bungie: AioBungieApiWrapper):
+        search_results = aio_bungie.search_users("uayebforever")
+        print(json.dumps(search_results, indent=4))
+        assert False
+
+    @pytest.mark.skip
+    def test_user_from_id(self, aio_bungie: AioBungieApiWrapper):
+        print()
+        search_results = aio_bungie.fetch_user_by_id(17970080)
+        print(search_results)
+        search_results = aio_bungie.fetch_user_by_id(4611686018505761883)
+        print(search_results)
+        assert False
+
+    @pytest.mark.skip
+    def test_post_activity(self, aio_bungie: AioBungieApiWrapper):
+        example_instance = 14001680102
+
+        post = aio_bungie.fetch_post_activity(example_instance)
+
+        print(post)
+
+        for player in post.players:
+            print(player)
+
+        assert False
