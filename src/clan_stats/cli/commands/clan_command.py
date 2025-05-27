@@ -2,7 +2,7 @@ import argparse
 from argparse import ArgumentParser
 
 from clan_stats import discord
-from clan_stats.actions import activity_check, clan_fireteams, clan_events, raid_report
+from clan_stats.actions import activity_check, clan_fireteams, clan_events, raid_report, interactive_clan_list
 from clan_stats.config import ClanStatsConfig
 from .command import Command
 from ...data._bungie_api.bungie_enums import GameMode
@@ -33,6 +33,19 @@ class MemberActivitiesCommand(Command):
                                         activity_mode=(GameMode.RAID
                                                        if args.activity_type == "raid"
                                                        else GameMode.NONE))
+
+
+class InteractiveEditCommand(Command):
+    name = "edit"
+    help = "Edit clan list interactively"
+
+    def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
+        _discord_file_argument(parser, config)
+
+    def execute(self, args, config: ClanStatsConfig):
+        discord_file = args.discord_file
+
+        interactive_clan_list.InteractiveClanList(discord_file).run()
 
 
 class ClanEventsCommand(Command):
@@ -78,7 +91,13 @@ class ClanFireteamsCommand(Command):
 class ClanCommand(Command):
     name = "clan"
     help = "Operations on a whole clan"
-    subcommands = [MemberActivitiesCommand(), ClanFireteamsCommand(), ClanEventsCommand(), RaidSummaryCommand()]
+    subcommands = [
+        MemberActivitiesCommand(),
+        ClanFireteamsCommand(),
+        ClanEventsCommand(),
+        RaidSummaryCommand(),
+        InteractiveEditCommand(),
+    ]
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
         parser.add_argument("--clan-id", default=config.default_clan_id)
