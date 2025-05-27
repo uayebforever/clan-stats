@@ -9,12 +9,16 @@ from ...data._bungie_api.bungie_enums import GameMode
 from ...data.retrieval import get_default_data_retriever
 
 
+def _discord_file_argument(parser: ArgumentParser, config: ClanStatsConfig) -> None:
+    parser.add_argument("--discord-file", default=config.discord_destiny_mapping_file)
+
+
 class MemberActivitiesCommand(Command):
     name = "member-activities"
     help = "Get a list of clan members and their recent activity"
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
-        parser.add_argument("--discord-file", default=config.discord_destiny_mapping_file)
+        _discord_file_argument(parser, config)
         parser.add_argument("--sort-by", choices=["name", "active", "discord"], default="name",
                             help="Whether to sort by name or most recently active")
         parser.add_argument("--activity-type", choices=["raid", "any"], default="name",
@@ -52,11 +56,9 @@ class RaidSummaryCommand(Command):
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
         parser.add_argument("--sort-by", choices=["name", "count"], default="name",
                             help="Whether to sort by name or most recently active")
-        parser.add_argument("--discord-file", default=config.discord_destiny_mapping_file)
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        discord_group = discord.group_from_csv_file(args.discord_file)
-        raid_report.clears(args.clan_id, discord_group, get_default_data_retriever(config), args.sort_by)
+        raid_report.clears(args.clan_id, get_default_data_retriever(config), args.sort_by)
 
 
 class ClanFireteamsCommand(Command):

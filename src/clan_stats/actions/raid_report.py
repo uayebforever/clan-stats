@@ -16,7 +16,6 @@ from clan_stats.util.async_utils import collect_map
 
 
 def clears(clan_id: int,
-           discord_group: DiscordGroup,
            data_retriever: DataRetriever,
            sort_by: str = "name"):
     clan, raid_data, manifest = asyncio.run(_fetch_clan_raid_data(data_retriever, clan_id))
