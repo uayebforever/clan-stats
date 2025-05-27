@@ -33,12 +33,12 @@ def clears(clan_id: int,
         raise KeyError(f"Invalid sort by '{sort_by}'")
 
     tabulated_counts = [
-        ([p] + [counts[r] for r in Raid.current()] + [sum(counts.values())]
+        ([p] + [counts[r] for r in Raid.current_raids()] + [sum(counts.values())]
          if counts
-         else [p] + ["-" for r in Raid.current()] + ["-"])
+         else [p] + ["-" for r in Raid.current_raids()] + ["-"])
         for p, counts in sorted(raid_counts.items(), key=sort_key)
     ]
-    headings = [""] + [r.name for r in Raid] + ["Total"]
+    headings = [""] + [r.name for r in Raid.current_raids()] + ["Total"]
 
     term.print_table(headings, tabulated_counts)
 
@@ -60,7 +60,7 @@ class Raid(StrEnum):
     UNKNOWN = "Unknown?"
 
     @classmethod
-    def current(cls) -> Sequence['Raid']:
+    def current_raids(cls) -> Sequence['Raid']:
         return [cls.SE, cls.CROTA, cls.ROOT, cls.KF, cls.VOW, cls.VOG, cls.DSC, cls.GOS, cls.LW]
 
     @classmethod
