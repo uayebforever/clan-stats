@@ -1,17 +1,16 @@
 import csv
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
+from pydantic import BaseModel
 
-@dataclass
-class DiscordMember(object):
+
+class DiscordMember(BaseModel):
     charlemagne_name: str
     discord_id: str
 
 
-@dataclass
-class DiscordGroup(object):
+class DiscordGroup(BaseModel):
     members: List[DiscordMember]
 
     def get_player(self, discord_id: str) -> str:
@@ -42,8 +41,8 @@ def group_from_csv_file(filename: Path) -> DiscordGroup:
                 # Ignore comment lines.
                 continue
             if leave_date == "":
-                members.append(DiscordMember(bungie, discord))
-    return DiscordGroup(members)
+                members.append(DiscordMember(charlemagne_name=bungie, discord_id=discord))
+    return DiscordGroup(members=members)
 
 
 def group_from_copy_paste_file(filename: str) -> DiscordGroup:
@@ -51,5 +50,5 @@ def group_from_copy_paste_file(filename: str) -> DiscordGroup:
         file_contents = [l.strip() for l in f.readlines()]
     members: List[DiscordMember] = list()
     for bungie, discord in zip(file_contents[0::2], file_contents[1::2]):
-        members.append(DiscordMember(bungie, discord))
-    return DiscordGroup(members)
+        members.append(DiscordMember(charlemagne_name=bungie, discord_id=discord))
+    return DiscordGroup(members=members)
