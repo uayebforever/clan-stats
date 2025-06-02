@@ -5,3 +5,5 @@ build
 
 flake8
 mypy
+
+textual-dev

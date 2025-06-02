@@ -69,9 +69,13 @@ class RaidSummaryCommand(Command):
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
         parser.add_argument("--sort-by", choices=["name", "count"], default="name",
                             help="Whether to sort by name or most recently active")
+        parser.add_argument("--interactive", "-i",
+                            action='store_true',
+                            dest="interactive",
+                            help="Display the table interactively")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        raid_report.clears(args.clan_id, get_default_data_retriever(config), args.sort_by)
+        raid_report.clears(args.clan_id, get_default_data_retriever(config), args.sort_by, args.interactive)
 
 
 class ClanFireteamsCommand(Command):

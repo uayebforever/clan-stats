@@ -13,6 +13,7 @@ dependencies = [
     "pydantic_yaml",
     "aiobungie",
     "blessed",
+    "textual",
 ]
 
 [project.scripts]
