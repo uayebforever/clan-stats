@@ -1,17 +1,25 @@
-from typing import Optional, Sequence, Mapping
 from datetime import datetime
+from typing import Optional, Sequence, Mapping, Any, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, AliasGenerator, AliasChoices, BeforeValidator
+from pydantic_core import PydanticUseDefault
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, GameMode
+from clan_stats.util.casing import to_snake_case
+
+_AdaptableType = TypeVar('_AdaptableType', bound='UpstreamAdapter')
 
 
 def display_name_from_name_and_code(name: str, code: int) -> str:
     return f"{name}#{code:04d}"
 
 
+validation_aliases = AliasGenerator(
+    validation_alias=lambda field_name: AliasChoices(field_name, to_snake_case(field_name))
+)
 class GeneralUser(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     membershipId: int
     uniqueName: str
@@ -31,13 +39,18 @@ class GeneralUser(BaseModel):
 
 
 class UserInfoCard(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     membershipType: MembershipType
     membershipId: int
     displayName: str
-    applicableMembershipTypes: Sequence[int] = Field(default_factory=list)
+    # applicableMembershipTypes: Optional[Sequence[int]] = Field(default_factory=list)
+    applicableMembershipTypes: Any = Field(default_factory=list)
 
 
 class UserMembershipData(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     bungieNetUser: GeneralUser
     destinyMemberships: Sequence[UserInfoCard]
 
@@ -45,7 +58,7 @@ class UserMembershipData(BaseModel):
 
 
 class DestinyPlayer(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     destinyUserInfo: UserInfoCard
     bungieNetUserInfo: Optional[UserInfoCard] = Field(default=None)
@@ -58,7 +71,7 @@ class DestinyPlayer(BaseModel):
 
 
 class DestinyCharacterComponent(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     membershipId: int  # Convenience duplicate
     membershipType: MembershipType  # Convenience duplicate
@@ -70,26 +83,26 @@ class DestinyCharacterComponent(BaseModel):
 
 
 class DictionaryComponentResponseOfint64AndDestinyCharacterComponent(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     data: Mapping[int, DestinyCharacterComponent]
 
 
 class DestinyProfileResponse(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     characters: Optional[DictionaryComponentResponseOfint64AndDestinyCharacterComponent]
 
 
 class GroupUserInfoCard(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     membershipId: int
     membershipType: MembershipType
     LastSeenDisplayName: str
     LastSeenDisplayNameType: MembershipType
-    bungieGlobalDisplayName: Optional[str]
-    bungieGlobalDisplayNameCode: Optional[int]
+    bungieGlobalDisplayName: smart_optional(str)
+    bungieGlobalDisplayNameCode: smart_optional(int)
 
     def best_name(self) -> str:
         if (self.bungieGlobalDisplayName is not None
@@ -99,6 +112,8 @@ class GroupUserInfoCard(BaseModel):
 
 
 class GroupMember(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     memberType: int
     isOnline: bool
     lastOnlineStatusChange: int
@@ -109,7 +124,7 @@ class GroupMember(BaseModel):
 
 
 class GroupV2(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     groupId: int
     name: str
@@ -118,37 +133,43 @@ class GroupV2(BaseModel):
 
 
 class GroupMembership(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     member: GroupMember
     group: GroupV2
 
 
 class GroupResponse(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     detail: GroupV2
     founder: GroupMember
 
 
 class GetGroupsForMemberResponse(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     areAllMembershipsInactive: Mapping[int, bool]
     results: Sequence[GroupMembership]
 
 
 class SearchResultOfGroupMember(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     results: Sequence[GroupMember]
     hasMore: bool
 
 
 class DestinyHistoricalStatsValuePair(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     value: float
     displayValue: str
 
 
 class DestinyHistoricalStatsValue(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     statId: str
     basic: DestinyHistoricalStatsValuePair
     pga: Optional[DestinyHistoricalStatsValuePair] = None
@@ -157,7 +178,7 @@ class DestinyHistoricalStatsValue(BaseModel):
 
 
 class DestinyHistoricalStatsActivity(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     directorActivityHash: int
     instanceId: int
@@ -166,7 +187,7 @@ class DestinyHistoricalStatsActivity(BaseModel):
 
 
 class DestinyHistoricalStatsPeriodGroup(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     period: datetime
     activityDetails: DestinyHistoricalStatsActivity
@@ -174,18 +195,20 @@ class DestinyHistoricalStatsPeriodGroup(BaseModel):
 
 
 class DestinyActivityHistoryResults(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     activities: Sequence[DestinyHistoricalStatsPeriodGroup]
 
 
 class DestinyPostGameCarnageReportEntry(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     player: DestinyPlayer
     characterId: int
 
 
 class DestinyPostGameCarnageReportData(BaseModel):
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     period: datetime
     activityDetails: DestinyHistoricalStatsActivity
@@ -193,6 +216,8 @@ class DestinyPostGameCarnageReportData(BaseModel):
 
 
 class UserSearchResponseDetail(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
     bungieGlobalDisplayName: str
     bungieGlobalDisplayNameCode: Optional[int]
     bungieNetMembershipId: Optional[int] = None
@@ -203,7 +228,7 @@ class UserSearchResponseDetail(BaseModel):
 
 
 class UserSearchResponse(BaseModel):
-    model_config = {"extra": "forbid"}
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     searchResults: Sequence[UserSearchResponseDetail]
     page: int
