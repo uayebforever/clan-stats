@@ -28,6 +28,10 @@ class DataRetriever(AsyncContextManager, abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    async def get_clan(self, clan_id: int) -> Clan:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     async def get_clan_for_player(self, player: Player) -> Optional[Clan]:
         raise NotImplementedError()
 
@@ -57,8 +61,4 @@ class DataRetriever(AsyncContextManager, abc.ABC):
 
     @abc.abstractmethod
     async def get_manifest(self) -> Manifest:
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    async def get_clan(self, clan_id: int) -> Clan:
         raise NotImplementedError()
