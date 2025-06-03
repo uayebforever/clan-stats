@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, Sequence, Mapping, Any, TypeVar
+from typing import Optional, Sequence, Mapping, Any, TypeVar, Annotated
 
-from pydantic import BaseModel, Field, ConfigDict
+import bungio
+import bungio.models
 from pydantic import BaseModel, Field, ConfigDict, AliasGenerator, AliasChoices, BeforeValidator
 from pydantic_core import PydanticUseDefault
 
@@ -18,6 +19,19 @@ def display_name_from_name_and_code(name: str, code: int) -> str:
 validation_aliases = AliasGenerator(
     validation_alias=lambda field_name: AliasChoices(field_name, to_snake_case(field_name))
 )
+
+
+def default_before_validator(value: Any) -> Any:
+    if value is bungio.models.MISSING:
+        raise PydanticUseDefault()
+    return value
+
+
+def smart_optional(wrapped_type):
+    """Used to ensure that we can also find fields named using snake case (for Bungio)."""
+    return Annotated[Optional[wrapped_type], BeforeValidator(default_before_validator)]
+
+
 class GeneralUser(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
@@ -25,17 +39,17 @@ class GeneralUser(BaseModel):
     uniqueName: str
     displayName: str
 
-    lastUpdate: Optional[datetime] = Field(default=None)
-    normalizedName: Optional[str] = Field(default=None)
+    lastUpdate: smart_optional(datetime) = Field(default=None)
+    normalizedName: smart_optional(str) = Field(default=None)
 
-    blizzardDisplayName: Optional[str] = Field(default=None)
-    egsDisplayName: Optional[str] = Field(default=None)
-    fbDisplayName: Optional[str] = Field(default=None)
-    psnDisplayName: Optional[str] = Field(default=None)
-    stadiaDisplayName: Optional[str] = Field(default=None)
-    steamDisplayName: Optional[str] = Field(default=None)
-    twitchDisplayName: Optional[str] = Field(default=None)
-    xboxDisplayName: Optional[str] = Field(default=None)
+    blizzardDisplayName: smart_optional(str) = Field(default=None)
+    egsDisplayName: smart_optional(str) = Field(default=None)
+    fbDisplayName: smart_optional(str) = Field(default=None)
+    psnDisplayName: smart_optional(str) = Field(default=None)
+    stadiaDisplayName: smart_optional(str) = Field(default=None)
+    steamDisplayName: smart_optional(str) = Field(default=None)
+    twitchDisplayName: smart_optional(str) = Field(default=None)
+    xboxDisplayName: smart_optional(str) = Field(default=None)
 
 
 class UserInfoCard(BaseModel):
@@ -44,7 +58,7 @@ class UserInfoCard(BaseModel):
     membershipType: MembershipType
     membershipId: int
     displayName: str
-    # applicableMembershipTypes: Optional[Sequence[int]] = Field(default_factory=list)
+    # applicableMembershipTypes: smart_optional(Sequence[int]) = Field(default_factory=list)
     applicableMembershipTypes: Any = Field(default_factory=list)
 
 
@@ -54,15 +68,15 @@ class UserMembershipData(BaseModel):
     bungieNetUser: GeneralUser
     destinyMemberships: Sequence[UserInfoCard]
 
-    primaryMembershipId: Optional[int] = Field(default=None)
+    primaryMembershipId: smart_optional(int) = Field(default=None)
 
 
 class DestinyPlayer(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
     destinyUserInfo: UserInfoCard
-    bungieNetUserInfo: Optional[UserInfoCard] = Field(default=None)
-    clanName: Optional[str] = Field(default=None)
+    bungieNetUserInfo: smart_optional(UserInfoCard) = Field(default=None)
+    clanName: smart_optional(str) = Field(default=None)
 
     def best_name(self) -> str:
         if self.bungieNetUserInfo is not None:
@@ -91,7 +105,7 @@ class DictionaryComponentResponseOfint64AndDestinyCharacterComponent(BaseModel):
 class DestinyProfileResponse(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
-    characters: Optional[DictionaryComponentResponseOfint64AndDestinyCharacterComponent]
+    characters: smart_optional(DictionaryComponentResponseOfint64AndDestinyCharacterComponent)
 
 
 class GroupUserInfoCard(BaseModel):
@@ -119,7 +133,7 @@ class GroupMember(BaseModel):
     lastOnlineStatusChange: int
     groupId: int
     destinyUserInfo: GroupUserInfoCard
-    bungieNetUserInfo: Optional[UserInfoCard] = Field(default=None)
+    bungieNetUserInfo: smart_optional(UserInfoCard) = Field(default=None)
     joinDate: datetime
 
 
@@ -172,9 +186,9 @@ class DestinyHistoricalStatsValue(BaseModel):
 
     statId: str
     basic: DestinyHistoricalStatsValuePair
-    pga: Optional[DestinyHistoricalStatsValuePair] = None
-    weighted: Optional[DestinyHistoricalStatsValuePair] = None
-    activityId: Optional[int] = None
+    pga: smart_optional(DestinyHistoricalStatsValuePair) = None
+    weighted: smart_optional(DestinyHistoricalStatsValuePair) = None
+    activityId: smart_optional(int) = None
 
 
 class DestinyHistoricalStatsActivity(BaseModel):
@@ -219,8 +233,8 @@ class UserSearchResponseDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     bungieGlobalDisplayName: str
-    bungieGlobalDisplayNameCode: Optional[int]
-    bungieNetMembershipId: Optional[int] = None
+    bungieGlobalDisplayNameCode: smart_optional(int)
+    bungieNetMembershipId: smart_optional(int) = None
     destinyMemberships: Sequence[UserInfoCard]
 
     def combined_global_display_name(self):
