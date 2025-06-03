@@ -1,9 +1,10 @@
 from datetime import datetime
 from types import TracebackType
-from typing import Sequence, Mapping, Type, Callable, Optional
+from typing import Sequence, Mapping, Type
 from logging import getLogger
 
 import aiobungie
+from clan_stats.data._bungie_api.api_helpers import activity_history_to
 from clan_stats.data._bungie_api.bungie_exceptions import PrivacyError
 from clan_stats.data._bungie_api.bungie_types import UserMembershipData, GroupMember, DestinyPostGameCarnageReportData, \
     GroupMembership, DestinyCharacterComponent, DestinyProfileResponse, \
@@ -11,7 +12,6 @@ from clan_stats.data._bungie_api.bungie_types import UserMembershipData, GroupMe
     DestinyHistoricalStatsPeriodGroup, GroupResponse, UserSearchResponse, UserSearchResponseDetail
 from clan_stats.data._bungie_api.typed_wrapper import BungieRestApiTypedWrapper
 from clan_stats.util.async_utils import retrieve_paged
-from clan_stats.util.itertools import first
 
 log = getLogger(__name__)
 
@@ -91,7 +91,7 @@ class AioBungieTypedWrapper(BungieRestApiTypedWrapper):
             typed_response = DestinyActivityHistoryResults(**response)
             return typed_response.activities
 
-        return await retrieve_paged(_get_page, enough=_activity_history_to(min_start_date))
+        return await retrieve_paged(_get_page, enough=activity_history_to(min_start_date))
 
     async def get_post_game_carnage_report(self, activity_id: int) -> DestinyPostGameCarnageReportData:
         response = await self._client.fetch_post_activity(activity_id)
@@ -103,19 +103,3 @@ class AioBungieTypedWrapper(BungieRestApiTypedWrapper):
         return typed_response.results
 
 
-def _activity_history_to(start_date: Optional[datetime]) -> Optional[Callable[[list], bool]]:
-    if start_date is None:
-        return None
-
-    def enough(activities: Sequence[DestinyHistoricalStatsPeriodGroup]) -> bool:
-        return _time_of_oldest_activity(activities) < start_date
-
-    return enough
-
-
-def _time_of_oldest_activity(activities: Sequence[DestinyHistoricalStatsPeriodGroup]) -> datetime:
-    return first(sorted(activities, key=_activity_time)).period
-
-
-def _activity_time(activity: DestinyHistoricalStatsPeriodGroup) -> datetime:
-    return activity.period
