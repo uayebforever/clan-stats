@@ -101,7 +101,9 @@ class BungioDataRetriever(DataRetriever):
             self._get_activity_history(
                 player.primary_membership.membership_id,
                 player.primary_membership.membership_type,
-                c.character_id)
+                c.character_id,
+                mode=int(mode),
+            )
             for c in characters]))
 
         return [activity_from_destiny_activity(a) for a in raw_activities]

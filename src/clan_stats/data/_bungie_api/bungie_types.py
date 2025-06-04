@@ -211,7 +211,7 @@ class DestinyHistoricalStatsPeriodGroup(BaseModel):
 class DestinyActivityHistoryResults(BaseModel):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
-    activities: Sequence[DestinyHistoricalStatsPeriodGroup]
+    activities: smart_optional(Sequence[DestinyHistoricalStatsPeriodGroup]) = Field(default_factory=list)
 
 
 class DestinyPostGameCarnageReportEntry(BaseModel):
