@@ -40,12 +40,11 @@ class InteractiveEditCommand(Command):
     help = "Edit clan list interactively"
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
-        _discord_file_argument(parser, config)
+        pass
+        # _discord_file_argument(parser, config)
 
     def execute(self, args, config: ClanStatsConfig):
-        discord_file = args.discord_file
-
-        interactive_clan_list.InteractiveClanList(discord_file).run()
+        interactive_clan_list.interactive_clan_list(args.clan_id, get_default_data_retriever(config))
 
 
 class ClanEventsCommand(Command):

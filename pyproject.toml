@@ -14,6 +14,7 @@ dependencies = [
     "aiobungie",
     "blessed",
     "textual",
+    "sqlalchemy[pysqlite]~=1.4",
 ]
 
 [project.scripts]

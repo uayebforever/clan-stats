@@ -23,6 +23,7 @@ def random_string(length: int = 8) -> str:
 def random_int(max=100000000) -> int:
     return random.randint(0, max)
 
+
 def random_datetime() -> datetime:
     return datetime.fromtimestamp(now().timestamp() - random_int(1_000_000), timezone.utc)
 
@@ -32,6 +33,7 @@ _T_Enum = TypeVar("_T_Enum", bound=Enum)
 
 def random_enum(enum: Type[_T_Enum]) -> _T_Enum:
     return random.choice(list(enum))
+
 
 def random_excluding(random_provider: Callable[[], _T], excluding: Sequence[_T]) -> _T:
     attempts = 1
@@ -51,6 +53,15 @@ def random_player() -> Player:
         is_private=False,
         all_names=None,
         last_seen=None
+    )
+
+
+def random_group_minimal_player() -> GroupMinimalPlayer:
+    return GroupMinimalPlayer(
+        primary_membership=random_membership(),
+        name=random_string(),
+        last_online=random_datetime(),
+        group_join_date=random_datetime()
     )
 
 

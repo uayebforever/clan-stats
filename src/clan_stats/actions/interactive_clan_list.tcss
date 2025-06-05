@@ -1,0 +1,23 @@
+#edit {
+    display: none;
+}
+
+#list {
+    display: block;
+}
+
+.editing #list {
+    display: none;
+}
+
+.editing #edit {
+    display: block;
+}
+
+Input:focus {
+    border: round red;
+}
+
+Input:blur {
+    border-title-color: grey
+}
