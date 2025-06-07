@@ -33,6 +33,8 @@ DEFAULT_LOGGING_CONFIG = {
             "class": "logging.StreamHandler",
             "formatter": "package_formatter",
             "stream": "ext://sys.stderr",
+            # TODO: Turned off because it interfers with interactive interface. Should just disable if interactive.
+            "level": "CRITICAL"
         },
     },
     "loggers": {
@@ -56,7 +58,15 @@ def configure_logging(level: LogLevel) -> None:
     logging.config.dictConfig(DEFAULT_LOGGING_CONFIG)
 
     for logger_name in PACKAGE_LOGGERS:
-        logging.getLogger(logger_name).setLevel(level.value)
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(level.value)
+        if level is LogLevel.ON:
+            file_handler_path = Path(".").joinpath("clan-stats.log")
+            file_handler = logging.FileHandler(file_handler_path)
+            file_handler.setFormatter(PackageLogFormatter())
+            file_handler.setLevel(level.value)
+            logger.addHandler(file_handler)
+            logger.debug("Logging to file %s", file_handler_path)
 
     log = logging.getLogger(__name__)
     log.debug("Logging has been configured.")

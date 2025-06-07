@@ -1,7 +1,14 @@
 import asyncio
 import logging
 from datetime import date
-from typing import Tuple, Callable, Optional, Dict, NamedTuple, Sequence, ClassVar, TypeVar, Generic, ParamSpec
+from typing import Tuple, Callable, Optional, Dict, NamedTuple, Sequence, ClassVar, TypeVar, Generic, ParamSpec, \
+    Iterator, Iterable
+
+from pydantic import BaseModel
+from textual.message import Message
+from textual.validation import Length
+from textual.widgets._data_table import CursorType
+from typing_extensions import Literal
 
 from textual import events
 from textual.app import App, ComposeResult
@@ -29,22 +36,46 @@ P = ParamSpec("P")
 
 
 def interactive_clan_list(clan_id: int, data_retriever: DataRetriever):
+    log.info("Interactive clan list")
+    log.info(__name__)
     clan = asyncio.run(_fetch_clan_data(data_retriever, clan_id))
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 
     InteractiveClanList(clan_database, clan).run(loop=asyncio.new_event_loop())
 
 
-class UnknownPlayersTable(DataTable, can_focus=True):
-    BINDINGS = [
-        ("a", 'app.add', "Add player as new member")
-    ]
+_R = TypeVar('_R')
 
 
-class MembersTable(DataTable, can_focus=True):
-    BINDINGS = [
-        ("e", 'app.edit', "Edit member")
-    ]
+class ColumnSpec(BaseModel, Generic[_R]):
+    name: str
+    data_supplier: Callable[[_R], str]
+    width: Optional[int] = None
+
+
+class UpdatingTable(DataTable, Generic[_R]):
+    COLUMNS: ClassVar[Sequence[ColumnSpec]] = []
+
+    def on_mount(self):
+        log.debug("Mounting table %s", self.name)
+        for colspec in self.COLUMNS:
+            self.add_column(colspec.name, width=colspec.width)
+        self.cursor_type = "row"
+
+    def update(self, row_list: Sequence[_R]) -> None:
+        log.info("Updating table %s with %s %s objects",
+                 self.name,
+                 len(row_list),
+                 first(row_list).__class__.__name__ if len(row_list) > 0 else "?")
+        self.clear()
+        self._row_sources = {}
+        for i, row in enumerate(row_list):
+            row_key = self.add_row(*(cs.data_supplier(row) for cs in self.COLUMNS),
+                                   key=str(i))
+            self._row_sources[row_key] = row
+
+    def selected_object(self) -> _R:
+        return self._row_sources[self.coordinate_to_cell_key(self.cursor_coordinate).row_key]
 
 
 class EscapableInput(Input):
@@ -55,33 +86,10 @@ class EscapableInput(Input):
             super()._on_key(event)
 
 
-_R = TypeVar('_R')
-
-
-class UpdatingTable(DataTable, Generic[_R]):
-    COLUMNS: ClassVar[Sequence[Tuple[str, Callable[[_R], str]]]] = []
-
-    def on_mount(self):
-        for column_head, _ in self.COLUMNS:
-            self.add_column(column_head)
-        self.cursor_type = "row"
-
-    def update(self, row_list: Sequence[_R]) -> None:
-        self.clear()
-        self._row_sources = {}
-        for i, row in enumerate(row_list):
-            row_key = self.add_row(*(lam(row) for _, lam in self.COLUMNS),
-                                   key=str(i))
-            self._row_sources[row_key] = row
-
-    def selected_object(self) -> _R:
-        return self._row_sources[self.coordinate_to_cell_key(self.cursor_coordinate).row_key]
-
-
 class SavableInput(EscapableInput):
 
     def __init__(self, label: str, save_hook: Callable[[str], None], *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, select_on_focus=False, **kwargs)
         self.save_hook = save_hook
         self.label = label
 
@@ -90,6 +98,66 @@ class SavableInput(EscapableInput):
 
     def save(self):
         self.save_hook(self.value)
+
+
+class UpdateRequired(Message):
+    pass
+
+
+class UnknownPlayersTable(UpdatingTable[GroupMinimalPlayer]):
+    BINDINGS = [
+        ("a", 'add', "Add player as new member")
+    ]
+
+    COLUMNS: ClassVar[Sequence[ColumnSpec[GroupMinimalPlayer]]] = [
+        ColumnSpec(name="Bungie Name", data_supplier=lambda p: p.name),
+        ColumnSpec(name="Bungie ID", data_supplier=lambda p: str(p.primary_membership.membership_id)),
+        ColumnSpec(name="Last online", data_supplier=lambda p: p.last_online.date().isoformat()),
+        ColumnSpec(name="Joined", data_supplier=lambda p: p.group_join_date.date().isoformat()),
+    ]
+
+    def __init__(self, membership_database: ClanMembershipDatabase, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._membership_database = membership_database
+
+    def action_add(self):
+        player_to_add = self.selected_object()
+        log.info("Adding player % to clan", player_to_add)
+        member = self._membership_database.new_member(
+            bungie_primary_membership_id=player_to_add.primary_membership.membership_id,
+            bungie_display_name=player_to_add.name,
+            discord_username="",
+            join_date=player_to_add.group_join_date.date()
+        )
+
+        self.app.push_screen(
+            MemberEditor(self._membership_database, member=member),
+            callback=lambda result: self.app._update_all())
+
+
+class MembersTable(UpdatingTable[Member]):
+    BINDINGS = [
+        ("e", 'edit', "Edit member")
+    ]
+
+    COLUMNS: ClassVar[Sequence[Tuple[str, Callable[[Member], str]]]] = (
+        ColumnSpec(name="Bungie Name", data_supplier=lambda m: only(m.active_accounts(AccountType.BUNGIE)).name),
+        ColumnSpec(name="Discord", data_supplier=lambda m: only(m.active_accounts(AccountType.DISCORD)).name),
+        ColumnSpec(name="Joined", data_supplier=lambda m: m.first_join.isoformat()),
+        ColumnSpec(name="Status", data_supplier=lambda m: m.current_status().status),
+        ColumnSpec(name="Notes", data_supplier=lambda m: truncate_str(require_else(m.notes, ""), 40)),
+    )
+
+    def __init__(self, membership_database: ClanMembershipDatabase, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._membership_database = membership_database
+
+    def action_edit(self):
+        member = self.selected_object()
+
+        self.app.push_screen(
+            MemberEditor(self._membership_database, member=member),
+            callback=lambda result: self.app._update_all())
 
 
 class EditMemberHistoryScreen(ModalScreen):
@@ -158,10 +226,13 @@ class EditMemberAccountsScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         def save_type(value: str):
             self._account.account_type = value
+
         def save_name(value: str):
             self._account.name = value
+
         def save_id(value: str):
             self._account.account_identifier = value
+
         def save_note(value: str):
             self._account.note = value
 
@@ -200,11 +271,11 @@ class EditMemberAccountsScreen(ModalScreen):
 
 
 class MemberHistoryTable(UpdatingTable):
-    COLUMNS: ClassVar[Sequence[Tuple[str, Callable[[MembershipStatus], str]]]] = (
-        ("Status", lambda m: m.status),
-        ("Date Conferred", lambda m: m.date_conferred),
-        ("Notes", lambda m: truncate_str(require_else(m.notes, ""), 20)),
-    )
+    COLUMNS: ClassVar[Sequence[ColumnSpec[MembershipStatus]]] = [
+        ColumnSpec(name="Status", data_supplier=lambda m: m.status, width=15),
+        ColumnSpec(name="Date Conferred", data_supplier=lambda m: m.date_conferred, width=14),
+        ColumnSpec(name="Notes", data_supplier=lambda m: require_else(m.notes, "")),
+    ]
 
     BINDINGS = [
         ('e', 'edit', "Edit"),
@@ -234,11 +305,11 @@ class MemberHistoryTable(UpdatingTable):
 
 
 class MemberAccountsTable(UpdatingTable):
-    COLUMNS: ClassVar[Sequence[Tuple[str, Callable[[Account], str]]]] = [
-        ("Type", lambda a: a.account_type),
-        ("Name", lambda a: a.name),
-        ("Act", lambda a: "A" if a.is_active else ""),
-        ("Notes", lambda a: a.note)
+    COLUMNS: ClassVar[Sequence[ColumnSpec[Account]]] = [
+        ColumnSpec(name="Type", data_supplier=lambda a: a.account_type, width=10),
+        ColumnSpec(name="Name", data_supplier=lambda a: a.name, width=30),
+        ColumnSpec(name="Act", data_supplier=lambda a: "A" if a.is_active else "", width=3),
+        ColumnSpec(name="Notes", data_supplier=lambda a: a.note)
     ]
 
     BINDINGS = [
@@ -290,8 +361,8 @@ class MemberEditor(Screen):
         self.history_table: Optional[MemberHistoryTable] = None
         self.accounts_table: Optional[MemberAccountsTable] = None
 
-    def add_field(self, title: str, /, id: str, disabled: bool = False):
-        field = EscapableInput(id=id, disabled=disabled)
+    def add_field(self, title: str, /, id: str, disabled: bool = False, **kwargs):
+        field = EscapableInput(id=id, disabled=disabled, **kwargs)
         field.border_title = title
         if title in self._fields:
             raise ValueError(f"Field {title} already exists!")
@@ -304,14 +375,20 @@ class MemberEditor(Screen):
             with Horizontal() as grid:
                 with Vertical():
                     yield self.add_field("Bungie Name", id="bungie_name", disabled=True)
-                    yield self.add_field("Discord Username", id="discord_name")
+                    yield self.add_field(
+                        "Discord Username",
+                        id="discord_name",
+                        validators=[
+                            Length(minimum=1)
+                        ]
+                    )
                     yield self.add_field("Bungie Membership Number", id="bungie_id", disabled=True)
                     yield self.add_field("Date joined", id="joined")
                 yield TextArea(id="member_notes")
-            with Horizontal() as horiz:
+            with Grid(id="hist_n_accounts"):
                 self.history_table = MemberHistoryTable(self._member)
                 yield self.history_table
-                self.accounts_table = MemberAccountsTable()
+                self.accounts_table = MemberAccountsTable(self._member)
                 yield self.accounts_table
         yield Footer()
 
@@ -339,6 +416,7 @@ class MemberEditor(Screen):
         discord_account = only(self._member.active_accounts(AccountType.DISCORD))
         discord_account.name = self._fields["discord_name"].value
         discord_account.account_identifier = self._fields["discord_name"].value
+
         self._clan_database.save_changes()
         self.dismiss()
 
@@ -354,132 +432,40 @@ class InteractiveClanList(App):
         ('q', 'quit', "Exit"),
     ]
 
-    _active_columns: Tuple[str, Callable[[Member], str]] = (
-        ("Bungie Name", lambda m: only(m.active_accounts(AccountType.BUNGIE)).name),
-        ("Discord", lambda m: only(m.active_accounts(AccountType.DISCORD)).name),
-        ("Joined", lambda m: m.first_join.isoformat()),
-        ("Notes", lambda m: truncate_str(require_else(m.notes, ""), 40)),
-    )
-
-    _unknown_columns: Tuple[str, Callable[[GroupMinimalPlayer], str]] = (
-        ("Bungie Name", lambda p: p.name),
-        ("Bungie ID", lambda p: str(p.primary_membership.membership_id)),
-        ("Last online", lambda p: p.last_online.date().isoformat()),
-        ("Joined", lambda p: p.group_join_date.date().isoformat()),
-    )
-
     def __init__(self, clan_database: ClanMembershipDatabase, clan: Clan):
         super().__init__()
         self._clan = clan
         self._clan_database = clan_database
+        self._unknown_table: Optional[UnknownPlayersTable] = None
+        self._members_table: Optional[MembersTable] = None
+        self._past_members_table: Optional[MembersTable] = None
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="list"):
             with Vertical(classes="area"):
                 yield Label("Unknown Players from Bungie Clan")
-                yield UnknownPlayersTable(id="unknown")
+                self._unknown_table = UnknownPlayersTable(self._clan_database, name="unknown_players")
+                yield self._unknown_table
             with Vertical(classes="area"):
                 yield Label("Current Members")
-                yield MembersTable(id="active")
+                self._members_table = MembersTable(membership_database=self._clan_database, name="current_members")
+                yield self._members_table
             with Vertical(classes="area"):
                 yield Label("Past Members")
-                yield MembersTable(id="past")
+                self._past_members_table = MembersTable(membership_database=self._clan_database,
+                                                        name="past_members")
+                yield self._past_members_table
         yield Footer()
 
     def on_mount(self) -> None:
-        self._populate_unknown()
-        self._populate_active()
-
-    async def action_add(self):
-        table = self.query_one("#unknown", UnknownPlayersTable)
-        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
-        player_to_add = only(p for p in self._clan.players if str(p.primary_membership.membership_id) == key)
-        log.info("Adding player % to clan", player_to_add)
-        member = self._clan_database.new_member(
-            bungie_primary_membership_id=player_to_add.primary_membership.membership_id,
-            bungie_display_name=player_to_add.name,
-            discord_username="",
-            join_date=player_to_add.group_join_date.date()
-        )
-
-        await self.edit_member(member)
-
-    async def action_edit(self):
-        table = self.query_one("#active", MembersTable)
-        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
-        member = only(m for m in self._clan_database.all_members() if str(m.id) == key)
-
-        await self.edit_member(member)
-
-    def _populate_unknown(self):
-        table = self.query_one("#unknown", DataTable)
-        table.cursor_type = 'row'
-        for column_name, _ in self._unknown_columns:
-            table.add_column(column_name)
-
-        self._update_unknown()
-
-    def _update_unknown(self):
-        unknown_players = find_unknown_players(self._clan_database, self._clan)
-        table = self.query_one("#unknown", DataTable)
-        prev_coord = table.cursor_coordinate
-        table.clear()
-
-        for player in unknown_players:
-            table.add_row(*(lam(player) for _, lam in self._unknown_columns),
-                          key=str(player.primary_membership.membership_id))
-        if prev_coord.row > table.row_count - 1:
-            table.cursor_coordinate = Coordinate(table.row_count - 1, 0)
-        else:
-            table.cursor_coordinate = prev_coord
-
-    def _populate_active(self):
-        table = self.query_one("#active", DataTable)
-        table.cursor_type = 'row'
-
-        for column_name, _ in self._active_columns:
-            table.add_column(column_name)
-
-        self._update_active()
-
-    def _update_active(self):
-        table = self.query_one("#active", DataTable)
-        prev_coord = table.cursor_coordinate
-        table.clear()
-
-        for member in self._clan_database.current_members():
-            table.add_row(*(lam(member) for _, lam in self._active_columns), key=str(member.id))
-        if prev_coord.row > table.row_count - 1:
-            table.cursor_coordinate = Coordinate(table.row_count - 1, 0)
-        else:
-            table.cursor_coordinate = prev_coord
-
-    def _populate_past(self):
-        table = self.query_one("#past", DataTable)
-        table.cursor_type = 'row'
-
-        columns = (
-            ("Bungie Name", lambda m: only(m.active_accounts(AccountType.BUNGIE)).name),
-            ("Discord", lambda m: only(m.active_accounts(AccountType.DISCORD)).name),
-            ("Joined", lambda m: m.first_join.isoformat()),
-            ("Notes", lambda m: truncate_str(require_else(m.notes, ""), 40)),
-        )
-
-        for column_name, _ in columns:
-            table.add_column(column_name)
-
-        for member in self._clan_database.past_members():
-            table.add_row(*(lam(member) for _, lam in columns))
+        log.info("Updating tables")
+        self._update_all()
 
     def _update_all(self):
-        self._update_unknown()
-        self._update_active()
-
-    async def edit_member(self, member: Member):
-        await self.push_screen(
-            MemberEditor(self._clan_database, member=member),
-            callback=lambda resut: self._update_all())
+        self._unknown_table.update(find_unknown_players(self._clan_database, self._clan))
+        self._members_table.update(list(self._clan_database.current_members()))
+        self._past_members_table.update(list(self._clan_database.past_members()))
 
 
 def truncate_str(text: str, length: int) -> str:
