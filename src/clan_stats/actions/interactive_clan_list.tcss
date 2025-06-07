@@ -1,23 +1,25 @@
-#edit {
-    display: none;
-}
-
-#list {
-    display: block;
-}
-
-.editing #list {
-    display: none;
-}
-
-.editing #edit {
-    display: block;
-}
-
-Input:focus {
+*:focus {
     border: round red;
 }
 
-Input:blur {
-    border-title-color: grey
+Input:blur, DataTable:blur, TextArea:blur {
+    border-title-color: grey;
+    border: round grey;
+}
+
+DataTable {
+    max-width: 100%;
+}
+
+ModalScreen {
+    align-horizontal: center;
+    align-vertical: middle;
+    height: 100%;
+}
+
+ModalScreen .modal {
+    margin: 1;
+    width: 60vw;
+    min-width: 60;
+    height: auto;
 }
