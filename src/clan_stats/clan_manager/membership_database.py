@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from clan_stats.clan_manager.orm_types import Base, Member
+from clan_stats.clan_manager.orm_types import Base, Member, Account, MembershipStatus
 
 
 class MembershipDatabase:
@@ -41,6 +41,10 @@ class MembershipDatabase:
         self.connect()
         self._session.add(member)
         self._update_members()
+
+    def add_to_session(self, item: Member | MembershipStatus | Account):
+        self.connect()
+        self._session.add(item)
 
     def commit_changes(self):
         self._session.commit()

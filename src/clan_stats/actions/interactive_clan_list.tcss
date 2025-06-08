@@ -28,3 +28,8 @@ Grid#hist_n_accounts {
     grid-size: 2;
     grid-columns: auto 1fr;
 }
+
+Grid#list {
+    grid-size: 1;
+    grid-rows: auto;
+}

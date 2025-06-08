@@ -15,6 +15,8 @@ class Status(StrEnum):
     MEMBER = "member"
     ADMIN = "admin"
     FOUNDER = "founder"
+    UNTOUCHABLE = "untouchable"
+    GHOST = "ghost"  # For people who leave the clan without any notice. Not used consistently.
     KICKED = "kicked"
     BANNED = "banned"
 
@@ -32,7 +34,7 @@ class ClanMembershipDatabase:
 
     @classmethod
     def path(cls, clan_id: int, base_path: Path = Path(".")):
-        return base_path.joinpath(f"{clan_id}.sqlite")
+        return base_path.joinpath(f"clan_database_{clan_id}.sqlite")
 
     def __init__(self, delegate: MembershipDatabase):
         self.delegate = delegate
@@ -104,6 +106,9 @@ class ClanMembershipDatabase:
         )
         self.delegate.add_member(member)
         return member
+
+    def add_object(self, item: Member | MembershipStatus | Account):
+        self.delegate.add_to_session(item)
 
 
 def find_unknown_players(clan_database: ClanMembershipDatabase,

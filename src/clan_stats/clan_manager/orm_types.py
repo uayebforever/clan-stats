@@ -1,9 +1,11 @@
-from typing import Sequence
+from enum import StrEnum
+from typing import Sequence, Optional
 
 from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 
 from clan_stats.util.itertools import first
+from clan_stats.util.optional import map_optional
 
 Base = declarative_base()
 
@@ -27,6 +29,27 @@ class Member(Base):
 
     def all_accounts(self, type: str) -> Sequence['Account']:
         return [a for a in self.accounts if a.account_type == type]
+
+    def _primary_bungie_account(self) -> Optional['Account']:
+        bungie_accounts = self.active_accounts(AccountType.BUNGIE)
+        if len(bungie_accounts) == 0:
+            return None
+        return bungie_accounts[0]
+
+    def _primary_discord_account(self) -> Optional['Account']:
+        discord_accounts = self.active_accounts(AccountType.DISCORD)
+        if len(discord_accounts) == 0:
+            return None
+        return discord_accounts[0]
+
+    def bungie_id(self) -> Optional[int]:
+        return int(map_optional(self._primary_bungie_account(), lambda m: m.account_identifier))
+
+    def bungie_name(self) -> Optional[str]:
+        return map_optional(self._primary_bungie_account(), lambda m: m.name)
+
+    def discord_name(self) -> Optional[str]:
+        return map_optional(self._primary_discord_account(), lambda m: m.name)
 
 
 class Account(Base):
