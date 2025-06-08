@@ -55,7 +55,7 @@ class _Terminal(object):
             else:
                 last_seen = ""
             name = self._terminal.bold_white(f"{player.name}")
-            index_str = f"{index: 2d}" if index is not None else ""
+            index_str = f"{index:3d}" if index is not None else ""
             if discord_name:
                 name = name + " / " + f"@{discord_name}"
             message = f"  {index_str} {name:70}" + self._terminal.blue(f" {last_seen:22}") + self._terminal.bright_black(

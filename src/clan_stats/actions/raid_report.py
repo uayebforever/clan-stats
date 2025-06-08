@@ -2,9 +2,9 @@ import asyncio
 from collections import defaultdict
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Tuple, Mapping, Sequence, Optional, Any
+from typing import Tuple, Mapping, Sequence, Optional
 
-from math import log10, ceil, floor
+from math import log10, floor
 from textual import events
 from textual.app import App, ComposeResult
 from textual.coordinate import Coordinate
@@ -16,10 +16,8 @@ from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import MinimalPlayer
-from clan_stats.discord import DiscordGroup
 from clan_stats.terminal import term
 from clan_stats.util.async_utils import collect_map
-from clan_stats.util.optional import require_else
 
 
 def clears(clan_id: int, data_retriever: DataRetriever, sort_by: str = "name", interactive=False):

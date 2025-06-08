@@ -25,9 +25,7 @@ class MemberActivitiesCommand(Command):
                             help="Filter by activity type")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        discord_group = discord.group_from_csv_file(args.discord_file)
         activity_check.activity_summary(args.clan_id,
-                                        discord_group,
                                         get_default_data_retriever(config),
                                         sort_by=args.sort_by,
                                         activity_mode=(GameMode.RAID

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Sequence, Iterator, Collection, Optional
 
 from clan_stats.clan_manager.membership_database import MembershipDatabase
-from clan_stats.clan_manager.orm_types import Member, MembershipStatus, Account
+from clan_stats.clan_manager.orm_types import Member, MembershipStatus, Account, AccountType
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import GroupMinimalPlayer
 from clan_stats.util.itertools import only
@@ -22,12 +22,7 @@ class Status(StrEnum):
 
     @classmethod
     def active_statuses(cls) -> Collection['Status']:
-        return cls.NEW, cls.MEMBER, cls.ADMIN, cls.FOUNDER
-
-
-class AccountType(StrEnum):
-    BUNGIE = "bungie_primary"
-    DISCORD = "discord"
+        return cls.NEW, cls.MEMBER, cls.ADMIN, cls.FOUNDER, cls.UNTOUCHABLE
 
 
 class ClanMembershipDatabase:
@@ -52,6 +47,11 @@ class ClanMembershipDatabase:
     def all_members(self) -> Iterator[Member]:
         yield from self.current_members()
         yield from self.past_members()
+
+    def get_discord_name(self, bungie_id: int):
+        for member in self.current_members():
+            if member.bungie_id() == bungie_id:
+                return only(member.active_accounts(AccountType.DISCORD)).account_identifier
 
     def save_changes(self):
         self.delegate.commit_changes()
@@ -119,3 +119,13 @@ def find_unknown_players(clan_database: ClanMembershipDatabase,
         p for p in bungie_clan.players if str(p.primary_membership.membership_id) not in known_bungie_ids
     ]
     return unknown_players
+
+
+def find_known_players(clan_database: ClanMembershipDatabase,
+                       bungie_clan: Clan) -> Sequence[GroupMinimalPlayer]:
+    known_bungie_ids = [
+        only(m.active_accounts(AccountType.BUNGIE)).account_identifier for m in clan_database.all_members()]
+    known_players = [
+        p for p in bungie_clan.players if str(p.primary_membership.membership_id) in known_bungie_ids
+    ]
+    return known_players

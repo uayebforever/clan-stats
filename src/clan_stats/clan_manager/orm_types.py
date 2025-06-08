@@ -10,6 +10,11 @@ from clan_stats.util.optional import map_optional
 Base = declarative_base()
 
 
+class AccountType(StrEnum):
+    BUNGIE = "bungie_primary"
+    DISCORD = "discord"
+
+
 class Member(Base):
     __tablename__ = "member"
 

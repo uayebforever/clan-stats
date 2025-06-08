@@ -1,6 +1,7 @@
 import random
 
-from clan_stats.clan_manager.clan_membership_database import ClanMembershipDatabase, AccountType, find_unknown_players
+from clan_stats.clan_manager.clan_membership_database import ClanMembershipDatabase, find_unknown_players
+from clan_stats.clan_manager import AccountType
 from clan_stats.clan_manager.membership_database import MembershipDatabase
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import GroupMinimalPlayer
