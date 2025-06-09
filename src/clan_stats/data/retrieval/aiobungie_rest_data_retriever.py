@@ -1,3 +1,4 @@
+import asyncio
 import itertools
 import logging
 from datetime import datetime
@@ -11,6 +12,8 @@ from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data._bungie_api.bungie_exceptions import PrivacyError
 from clan_stats.data._bungie_api.bungie_type_adapters import player_from_user_membership_data, player_from_group_member, \
     activity_from_destiny_activity, activity_with_post, primary_membership_from_cards
+from clan_stats.data._bungie_api.bungie_types import GetGroupsForMemberResponse, UserMembershipData, \
+    DestinyProfileResponse
 from clan_stats.data._bungie_api.typed_wrapper import find_clan_group
 from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
@@ -38,15 +41,12 @@ class AioBungieRestDataRetriever(DataRetriever):
         return await self._wrapper.__aexit__(exception_type, exception, traceback)
 
     async def get_player(self, player_id: int) -> Player:
-        user_data = await self._wrapper.get_membership_data_by_id(player_id)
-        player = player_from_user_membership_data(user_data)
-        return player
+        return player_from_user_membership_data(await self._wrapper.get_membership_data_by_id(player_id))
 
     async def get_characters_for_player(self, player: MinimalPlayer) -> Sequence[Character]:
         try:
-            characters = await self._wrapper.get_profile_characters(
-                player.primary_membership.membership_id,
-                player.primary_membership.membership_type)
+            characters = await self._wrapper.get_profile_characters(player.primary_membership.membership_id,
+                                                                    player.primary_membership.membership_type)
         except aiobungie.error.InternalServerError as e:
             logger.warning("InternalServerError '%s: %s' while retrieving characters for %s",
                            e.error_status,
@@ -70,33 +70,25 @@ class AioBungieRestDataRetriever(DataRetriever):
         group_members = await self._wrapper.get_members_of_group(group_id=clan_id)
 
         players = [player_from_group_member(m) for m in group_members]
+        logging.debug("Clan %s (%s) has %s players", clan_id, clan_group.detail.name, len(players))
         return Clan(
             id=clan_group.detail.groupId,
             name=clan_group.detail.name,
             players=players,
-            characters=flatten(await collect_results([self.get_characters_for_player(p) for p in players])))
+            # characters=flatten(await collect_results([self.get_characters_for_player(p) for p in players])))
+            characters=flatten(await asyncio.gather(*[self.get_characters_for_player(p) for p in players])))
 
     async def get_clan_for_player(self, player: Player) -> Optional[Clan]:
         groups = await self._wrapper.get_groups_for_member(
-            player.primary_membership.membership_id,
-            player.primary_membership.membership_type)
+                player.primary_membership.membership_id,
+                player.primary_membership.membership_type)
 
         clan_group = find_clan_group(groups)
 
         if clan_group is None:
             return None
 
-        logger.debug("Getting player %s clan %s", player.name, clan_group.group.groupId)
-
-        group_members = await self._wrapper.get_members_of_group(clan_group.group.groupId)
-
-        players = [player_from_group_member(m) for m in group_members]
-        return Clan(
-            id=clan_group.group.groupId,
-            name=clan_group.group.name,
-            players=players,
-            characters=list(itertools.chain(*[
-                await self.get_characters_for_player(p) for p in players])))
+        return await self.get_clan(clan_group.group.groupId)
 
     async def get_activities_for_player(
             self,
@@ -140,7 +132,7 @@ class AioBungieRestDataRetriever(DataRetriever):
                 is_private=False,
                 last_seen=None,
                 primary_membership=
-                    primary_membership_from_cards(result.destinyMemberships),
+                primary_membership_from_cards(result.destinyMemberships),
                 all_names={c.membershipType.name: c.displayName for c in result.destinyMemberships}
             ))
         return players

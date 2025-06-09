@@ -1,12 +1,10 @@
-import sys
 from argparse import ArgumentParser
-
 from logging import getLogger
 
-from ...config import ClanStatsConfig
-from ...data.retrieval import get_default_data_retriever
-from ...exceptions import ApplicationError, UserError
 from .command import Command
+from ...config import ClanStatsConfig
+from ...data.retrieval.default_data_retriever import get_data_retriever, DataRetrieverType
+from ...exceptions import ApplicationError, UserError
 
 log = getLogger(__name__)
 
@@ -50,7 +48,7 @@ class RetrieveManifest(Command):
         pass
 
     def execute(self, args, config: ClanStatsConfig):
-        data_retriever = get_default_data_retriever(config)
+        data_retriever = get_data_retriever(DataRetrieverType(args.backend), config)
         data_retriever.get_manifest()
 
 
