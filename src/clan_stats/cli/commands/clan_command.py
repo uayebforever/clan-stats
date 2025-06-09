@@ -1,11 +1,10 @@
 import argparse
 from argparse import ArgumentParser
 
-from clan_stats import discord
 from clan_stats.actions import activity_check, clan_fireteams, clan_events, raid_report, interactive_clan_list
 from clan_stats.config import ClanStatsConfig
 from clan_stats.data._bungie_api.bungie_enums import GameMode
-from clan_stats.data.retrieval.default_data_retriever import get_data_retriever, DataRetrieverType
+from clan_stats.data.retrieval import get_data_retriever, DataRetrieverType
 from .command import Command
 
 
@@ -42,7 +41,8 @@ class InteractiveEditCommand(Command):
         # _discord_file_argument(parser, config)
 
     def execute(self, args, config: ClanStatsConfig):
-        interactive_clan_list.interactive_clan_list(args.clan_id, get_default_data_retriever(config))
+        interactive_clan_list.interactive_clan_list(args.clan_id,
+                                                    get_data_retriever(DataRetrieverType(args.backend), config))
 
 
 class ClanEventsCommand(Command):
@@ -72,7 +72,10 @@ class RaidSummaryCommand(Command):
                             help="Display the table interactively")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        raid_report.clears(args.clan_id, get_data_retriever(config), args.sort_by, args.interactive)
+        raid_report.clears(args.clan_id,
+                           get_data_retriever(DataRetrieverType(args.backend), config),
+                           args.sort_by,
+                           args.interactive)
 
 
 class ClanFireteamsCommand(Command):
