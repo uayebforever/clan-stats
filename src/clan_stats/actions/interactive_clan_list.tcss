@@ -1,0 +1,39 @@
+*:focus {
+    border: round red;
+}
+
+Input:blur, DataTable:blur, TextArea:blur {
+    border-title-color: grey;
+    border: round grey;
+}
+
+DataTable {
+    max-width: 100%;
+}
+
+ModalScreen {
+    align-horizontal: center;
+    align-vertical: middle;
+    height: 100%;
+}
+
+ModalScreen .modal {
+    margin: 1;
+    width: 60vw;
+    min-width: 60;
+    height: auto;
+}
+
+Grid#hist_n_accounts {
+    grid-size: 2;
+    grid-columns: auto 1fr;
+}
+
+Grid#list {
+    grid-size: 1;
+    grid-rows: auto;
+}
+
+.hidden {
+    display: none;
+}
