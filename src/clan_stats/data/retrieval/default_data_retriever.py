@@ -1,4 +1,5 @@
 import os
+from enum import StrEnum
 from pathlib import Path
 
 from clan_stats.config import ClanStatsConfig
@@ -14,3 +15,17 @@ def get_default_data_retriever(config: ClanStatsConfig) -> DataRetriever:
     #     delegate=AioBungieRestDataRetriever(config.bungie_api_key),
     #     database_directory=Path(".").joinpath("cache"))
     return BungioDataRetriever(config.bungie_api_key)
+
+
+class DataRetrieverType(StrEnum):
+    BUNGIO = "bungio"
+    AIOBUNGIE_REST = "aiobungie_rest"
+
+
+def get_data_retriever(retriever: DataRetrieverType, config: ClanStatsConfig) -> DataRetriever:
+    if retriever is DataRetrieverType.BUNGIO:
+        return BungioDataRetriever(config.bungie_api_key)
+    if retriever is DataRetrieverType.AIOBUNGIE_REST:
+        return CachedDataRetriever(
+            delegate=AioBungieRestDataRetriever(config.bungie_api_key),
+            database_directory=Path(".").joinpath("cache"))

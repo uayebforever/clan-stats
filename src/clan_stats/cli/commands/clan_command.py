@@ -4,9 +4,9 @@ from argparse import ArgumentParser
 from clan_stats import discord
 from clan_stats.actions import activity_check, clan_fireteams, clan_events, raid_report, interactive_clan_list
 from clan_stats.config import ClanStatsConfig
+from clan_stats.data._bungie_api.bungie_enums import GameMode
+from clan_stats.data.retrieval.default_data_retriever import get_data_retriever, DataRetrieverType
 from .command import Command
-from ...data._bungie_api.bungie_enums import GameMode
-from ...data.retrieval import get_default_data_retriever
 
 
 def _discord_file_argument(parser: ArgumentParser, config: ClanStatsConfig) -> None:
@@ -26,7 +26,7 @@ class MemberActivitiesCommand(Command):
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
         activity_check.activity_summary(args.clan_id,
-                                        get_default_data_retriever(config),
+                                        get_data_retriever(DataRetrieverType(args.backend), config),
                                         sort_by=args.sort_by,
                                         activity_mode=(GameMode.RAID
                                                        if args.activity_type == "raid"
@@ -54,7 +54,7 @@ class ClanEventsCommand(Command):
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
         clan_events.recent_clan_events(args.clan_id,
-                                       get_default_data_retriever(config),
+                                       get_data_retriever(DataRetrieverType(args.backend), config),
                                        recency_days=args.past_days,
                                        min_clan_fireteam_members=args.min_clanmates)
 
@@ -72,7 +72,7 @@ class RaidSummaryCommand(Command):
                             help="Display the table interactively")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        raid_report.clears(args.clan_id, get_default_data_retriever(config), args.sort_by, args.interactive)
+        raid_report.clears(args.clan_id, get_data_retriever(config), args.sort_by, args.interactive)
 
 
 class ClanFireteamsCommand(Command):
@@ -83,7 +83,7 @@ class ClanFireteamsCommand(Command):
         add_fireteam_finder_arguments(parser)
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        clan_fireteams.recent_clan_fireteams_summary(get_default_data_retriever(config),
+        clan_fireteams.recent_clan_fireteams_summary(get_data_retriever(DataRetrieverType(args.backend), config),
                                                      args.clan_id,
                                                      recency_days=args.past_days,
                                                      min_clan_fireteam_members=args.min_clanmates)

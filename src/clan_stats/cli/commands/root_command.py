@@ -8,6 +8,8 @@ from .player_command import PlayerCommand
 from .test_command import TestCommand
 from .version import VersionCommand
 from ...config import ClanStatsConfig
+from ...data.retrieval.default_data_retriever import DataRetrieverType
+from ...util.itertools import first
 
 
 class RootCommand(Command):
@@ -20,6 +22,11 @@ class RootCommand(Command):
             "--version",
             action='store_true',
             help="Print version information and exit")
+
+        parser.add_argument('--backend',
+                            choices=list(DataRetrieverType),
+                            default=first(DataRetrieverType),
+                            help="Which python library to use to access the Bungie API")
 
     def execute(self, args, config):
         if args.version:
