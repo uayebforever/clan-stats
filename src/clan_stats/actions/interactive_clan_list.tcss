@@ -33,3 +33,7 @@ Grid#list {
     grid-size: 1;
     grid-rows: auto;
 }
+
+.hidden {
+    display: none;
+}

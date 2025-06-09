@@ -180,6 +180,12 @@ class UnknownPlayersTable(UpdatingTable[GroupMinimalPlayer]):
             MemberEditor(self._membership_database, member=member),
             callback=lambda result: self.app._update_all())
 
+    def update(self, row_list: Sequence[GroupMinimalPlayer]) -> None:
+        super().update(row_list)
+        if len(row_list) == 0:
+            self.add_class("hidden")
+        else:
+            self.remove_class("hidden")
 
 class MembersTable(UpdatingTable[Member]):
     BINDINGS = [
