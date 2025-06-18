@@ -6,9 +6,12 @@ from .individuals import Player, Character, GroupMinimalPlayer
 from ...util.itertools import first
 
 
-class Clan(BaseModel):
+class MinimalClan(BaseModel):
     id: int
     name: str
+
+
+class Clan(MinimalClan):
     players: Sequence[GroupMinimalPlayer]
     characters: Sequence[Character]
 

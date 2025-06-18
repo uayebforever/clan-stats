@@ -7,12 +7,13 @@ from typing import Union, Sequence, Optional
 
 from bungio import Client
 from bungio.models import DestinyClan, RuntimeGroupMemberType, DestinyComponentType, BungieMembershipType, \
-    GroupsForMemberFilter, GroupType, UserSearchPrefixRequest
+    GroupsForMemberFilter, GroupType, UserSearchPrefixRequest, GroupQuery
+from typing_extensions import override
 
 from clan_stats.data._bungie_api.api_helpers import activity_history_to
 from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data._bungie_api.bungie_type_adapters import player_from_group_member, player_from_user_membership_data, \
-    activity_from_destiny_activity, activity_with_post
+    activity_from_destiny_activity, activity_with_post, player_from_user_search_response_detail
 from clan_stats.data._bungie_api.bungie_types import GroupResponse, SearchResultOfGroupMember, DestinyProfileResponse, \
     UserMembershipData, GetGroupsForMemberResponse, DestinyActivityHistoryResults, DestinyHistoricalStatsPeriodGroup, \
     DestinyPostGameCarnageReportData, UserSearchResponse
@@ -20,10 +21,10 @@ from clan_stats.data._bungie_api.typed_wrapper import find_clan_group
 from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity, ActivityWithPost
-from clan_stats.data.types.clan import Clan
+from clan_stats.data.types.clan import Clan, MinimalClan
 from clan_stats.data.types.individuals import Player, MinimalPlayer, Character, Membership
 from clan_stats.util.async_utils import retrieve_paged
-from clan_stats.util.itertools import flatten
+from clan_stats.util.itertools import flatten, not_empty
 from clan_stats.util.stopwatch import Stopwatch
 from clan_stats.util.time import require_tz_aware_datetime
 
@@ -119,6 +120,16 @@ class BungioDataRetriever(DataRetriever):
         # UserSearchPrefixRequest.
         # response = UserSearchResponse.model_validate(
         #     await self._client.api.search_by_global_name_post())
+
+    async def find_clans(self, identifier: Union[int, str]) -> Sequence[MinimalClan]:
+        if isinstance(identifier, str):
+            query = GroupQuery(name=identifier, group_type=GroupType.CLAN)
+            response = UserSearchResponse.model_validate(
+                await self._client.api.group_search(query))
+            return [player_from_user_search_response_detail(detail)
+                    for detail in response.searchResults]
+        else:
+            raise NotImplementedError("Search by Bungie (integer) ID not supported yet.")
 
     async def get_manifest(self) -> Manifest:
         logger.debug("Retrieving Destiny Manifest")
