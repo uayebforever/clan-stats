@@ -36,12 +36,22 @@ def random_enum(enum: Type[_T_Enum]) -> _T_Enum:
 
 
 def random_excluding(random_provider: Callable[[], _T], excluding: Sequence[_T]) -> _T:
-    attempts = 1
+    attempts = 0
     value = random_provider()
-    while value in excluding and attempts < 1000:
+    while value in excluding and (attempts := attempts + 1) < 1000:
         value = random_provider()
     if value in excluding:
         raise RuntimeError("random_excluding: unable to find satisfactory random value")
+    return value
+
+
+def random_satisfying(random_provider: Callable[[], _T], predicate: Callable[[_T], bool]) -> _T:
+    attempts = 1
+    value = random_provider()
+    while not predicate(value) and (attempts := attempts + 1) < 1000:
+        value = random_provider()
+    if not predicate(value):
+        raise RuntimeError("random_satisfying: unable to find satisfactory random value")
     return value
 
 
