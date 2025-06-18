@@ -7,16 +7,22 @@ _K = TypeVar("_K")
 _V = TypeVar("_V")
 
 
-def first(iterable: Iterable[_T]) -> Optional[_T]:
+def first(iterable: Iterable[_T]) -> _T:
     try:
         return next(iter(iterable))
     except StopIteration:
         raise ValueError("first: none found")
 
+def maybe_first(iterable: Iterable[_T]) -> Optional[_T]:
+    try:
+        return next(iter(iterable))
+    except StopIteration:
+        return None
+
 def rest(iterable: Iterable[_T]) -> Iterable[_T]:
     try:
         it = iter(iterable)
-        next(it)
+        _ = next(it)
         return it
     except StopIteration:
         raise ValueError("no elements in iterable")
@@ -25,14 +31,28 @@ def flatten(iterable: Sequence[Sequence[_T]]) -> Sequence[_T]:
     return list(itertools.chain(*iterable))
 
 def only(iterable: Iterable[_T]) -> _T:
-    l = list(iterable)
-    if len(l) > 1:
-        raise ValueError("only: More than one element")
-    elif len(l) == 0:
+    it = iter(iterable)
+    try:
+        val = next(it)
+    except StopIteration:
         raise ValueError("only: none found")
-    else:
-        return l[0]
 
+    try:
+        _ = next(it)
+        raise ValueError("only: More than one element")
+    except StopIteration:
+        return val
+
+def is_empty(iterable: Iterable[_T]) -> bool:
+    try:
+        it = iter(iterable)
+        _ =next(it)
+        return False
+    except StopIteration:
+        return True
+
+def not_empty(iterable: Iterable[_T]) -> bool:
+    return not is_empty(iterable)
 
 def key_sort() -> Callable[[Tuple[_K, _V]],_K]:
     return lambda i: i[0]
