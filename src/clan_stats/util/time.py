@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from typing import NamedTuple, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -71,9 +73,13 @@ class TimePeriod(BaseModel):
     start: datetime
     length: timedelta
 
+    class DifferenceTuple(NamedTuple):
+        before: Optional['TimePeriod']
+        after: Optional['TimePeriod']
+
     @classmethod
     def for_range(cls, start: datetime, end: datetime):
-        return cls(start=start, length=(end-start))
+        return cls(start=start, length=(end - start))
 
     @property
     def end(self) -> datetime:
@@ -82,14 +88,31 @@ class TimePeriod(BaseModel):
     def contains(self, other: datetime):
         if not isinstance(other, datetime):
             raise ValueError(f"Cannot check TimePeriod contains {repr(other)}")
-        return self.start < other < self.end
+        return self.start <= other < self.end
 
     def overlaps(self, other: 'TimePeriod'):
-        return (self.contains(other.start)
-                or self.contains(other.end)
-                or other.contains(self.start)
-                or other.contains(self.end)
-                or self.start == other.start)
+        return not (other.end <= self.start or self.end <= other.start)
+
+    def difference(self, other: 'TimePeriod') -> DifferenceTuple:
+        if not self.overlaps(other):
+            if other.start < self.start:
+                return self.DifferenceTuple(None, self)
+            else:
+                return self.DifferenceTuple(self, None)
+        if other.start <= self.start and self.end <= other.end:
+            return self.DifferenceTuple(None, None)
+        if (not self.contains(other.start) or self.start == other.start) and self.contains(other.end):
+            # Overlaps start
+            return self.DifferenceTuple(None, TimePeriod.for_range(other.end, self.end))
+        if self.contains(other.start) and not self.contains(other.end):
+            # Overlaps end
+            return self.DifferenceTuple(TimePeriod.for_range(self.start, other.start), None)
+        if self.contains(other.start) and self.contains(other.end):
+            # subtract out of middle
+            return self.DifferenceTuple(
+                TimePeriod.for_range(self.start, other.start),
+                TimePeriod.for_range(other.end, self.end))
+        return self.DifferenceTuple(None, None)
 
     def shift(self, delta: timedelta):
         return TimePeriod(start=self.start + delta, length=self.length)
@@ -100,6 +123,16 @@ class TimePeriod(BaseModel):
         length = end - start
         return type(self)(start=start,
                           length=length)
+
+    def combine_contiguous(self, other: 'TimePeriod') -> 'TimePeriod':
+        if self == other:
+            return self
+        if self.overlaps(other):
+            return self.combine(other)
+        if self.end == other.start or self.start == other.end:
+            # adjacent
+            return self.combine(other)
+        raise ValueError(f"{self} not contiguous with {other}, can't combine")
 
 
 def format_time_weekday_and_time(dt: datetime) -> str:
@@ -131,8 +164,10 @@ def format_time_period_weekday_and_time(period: TimePeriod) -> str:
     formatted_end = format_time(period.end)
     return f"{formatted_start} — {formatted_end}"
 
+
 def now() -> datetime:
     return datetime.now(timezone.utc)
+
 
 def days_ago(days: int) -> datetime:
     return now() - timedelta(days=days)
