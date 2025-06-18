@@ -268,3 +268,32 @@ class UserSearchResponse(BungieTypeBase):
     searchResults: Sequence[UserSearchResponseDetail]
     page: int
     hasMore: bool
+
+class PagedQuery(BungieTypeBase):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
+    itemsPerPage: int
+    currentPage: int
+    requestContinuationToken: Optional[str] = None
+
+class GroupV2Card(BungieTypeBase):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
+    groupId: int
+    name: str
+    groupType: int
+    creationDate: datetime
+    about: str
+    motto: str
+    memberCount: int
+
+
+class GroupSearchResponse(BungieTypeBase):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
+
+    results: Sequence[GroupV2Card]
+    totalResults: int
+    hasMore: bool
+    query: PagedQuery
+    replacementContinuationToken: Optional[str] = None
+

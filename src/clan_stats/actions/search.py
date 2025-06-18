@@ -45,3 +45,9 @@ async def _get_data(data_retriever: DataRetriever, search_string: str) -> Sequen
     async with data_retriever:
         players = await data_retriever.find_players(search_string)
     return players
+
+def clan_search(data_retriever: DataRetriever, search_string: str) -> None:
+    clans_found = asyncio.run(data_retriever.find_clans(search_string))
+
+    for clan in clans_found:
+        print(clan.name, clan.id)

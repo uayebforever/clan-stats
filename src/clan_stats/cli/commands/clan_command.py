@@ -2,9 +2,11 @@ import argparse
 from argparse import ArgumentParser
 
 from clan_stats.actions import activity_check, clan_fireteams, clan_events, raid_report, interactive_clan_list
+from clan_stats.actions.search import clan_search
 from clan_stats.config import ClanStatsConfig
 from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data.retrieval import get_data_retriever, DataRetrieverType
+
 from .command import Command
 
 
@@ -92,6 +94,18 @@ class ClanFireteamsCommand(Command):
                                                      min_clan_fireteam_members=args.min_clanmates)
 
 
+class ClanSearchCommand(Command):
+    name = "search"
+    help = "Search for a clan"
+
+    def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
+        parser.add_argument("query",
+                            help="string to query for")
+
+    def execute(self, args, config: ClanStatsConfig):
+        clan_search(get_data_retriever(DataRetrieverType(args.backend), config), args.query)
+
+
 class ClanCommand(Command):
     name = "clan"
     help = "Operations on a whole clan"
@@ -101,6 +115,7 @@ class ClanCommand(Command):
         ClanEventsCommand(),
         RaidSummaryCommand(),
         InteractiveEditCommand(),
+        ClanSearchCommand()
     ]
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
