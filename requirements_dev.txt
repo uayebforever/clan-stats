@@ -1,9 +1,12 @@
 pytest
 pytest-asyncio
+pytest-mock
 tox
 build
 
 flake8
 mypy
+basedpyright
+types-mock
 
 textual-dev
