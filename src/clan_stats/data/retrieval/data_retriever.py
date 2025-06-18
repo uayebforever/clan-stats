@@ -6,7 +6,7 @@ from typing import List, Sequence, Mapping, Dict, Union, Optional, AsyncContextM
 from .._bungie_api.bungie_enums import GameMode
 from ..manifest import Manifest
 from ..types.activities import ActivityWithPost, Activity
-from ..types.clan import Clan
+from ..types.clan import Clan, MinimalClan
 from ..types.individuals import Player, Character, MinimalPlayer
 
 
@@ -57,6 +57,10 @@ class DataRetriever(AsyncContextManager, abc.ABC):
 
     @abc.abstractmethod
     async def find_players(self, identifier: Union[int, str]) -> Sequence[Player]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    async def find_clans(self, identifier: Union[int, str]) -> Sequence[MinimalClan]:
         raise NotImplementedError()
 
     @abc.abstractmethod

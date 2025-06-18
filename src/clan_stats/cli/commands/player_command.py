@@ -2,7 +2,7 @@ import asyncio
 from argparse import ArgumentParser
 from typing import final
 
-from clan_stats.actions import player_activity_summary, player_search
+from clan_stats.actions import player_activity_summary, search
 from clan_stats.config import ClanStatsConfig
 from clan_stats.data.retrieval import get_data_retriever, DataRetrieverType
 from .command import Command
