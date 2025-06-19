@@ -1,13 +1,18 @@
+import logging
 from datetime import timedelta, datetime, timezone
-from typing import Dict, Any, Callable, Optional, Sequence
+from typing import Dict, Any, Callable, Optional, Sequence, Mapping
 
+from clan_stats.data._bungie_api.bungie_enums import MembershipType
 from clan_stats.data._bungie_api.bungie_types import UserMembershipData, UserInfoCard, GroupMember, \
-    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue
+    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue, \
+    UserSearchResponseDetail
 from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.individuals import Player, Membership, MinimalPlayer, MinimalPlayerWithClan, \
     GroupMinimalPlayer
-from clan_stats.util.itertools import only, first
+from clan_stats.util.itertools import only, first, is_empty
 from clan_stats.util.time import TimePeriod
+
+log = logging.getLogger(__name__)
 
 SUPPORTED_PLATFORMS = [
     "xbox",
@@ -19,6 +24,22 @@ SUPPORTED_PLATFORMS = [
     "twitch",
     "egs",
 ]
+
+
+def _get_platform_for_type(membership_type: MembershipType) -> str:
+    if membership_type is MembershipType.XBOX:
+        return "xbox"
+    if membership_type is MembershipType.PSN:
+        return "psn"
+    if membership_type is MembershipType.STEAM:
+        return "steam"
+    if membership_type is MembershipType.BLIZZARD:
+        return "blizzard"
+    if membership_type is MembershipType.STADIA:
+        return "stadia"
+    if membership_type is MembershipType.EPIC_GAMES_STORE:
+        return "egs"
+    raise KeyError(f"Unknown platform string for membership type {membership_type}")
 
 
 def _membership_has_id(membership_id: int) -> Callable[[UserInfoCard], bool]:
@@ -35,25 +56,46 @@ def membership_from_user_info_card(card: UserInfoCard) -> Membership:
     )
 
 
-def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
+def find_cross_save_primary(cards: Sequence[UserInfoCard]) -> UserInfoCard:
     """From the bungie API docs
     The list of Membership Types indicating the platforms on which this Membership can be used.
 
     Not in Cross Save = its original membership type. Cross Save Primary = Any membership types it is overridding,
     and its original membership type Cross Save Overridden = Empty list
     """
-    possible = []
-    for cards in cards:
-        if len(cards.applicableMembershipTypes) == 0:
+    possible: list[UserInfoCard] = []
+    for card in cards:
+        if len(card.applicableMembershipTypes) == 0:
             # this one is overridden and not primary
             continue
-        if len(cards.applicableMembershipTypes) > 1:
+        if len(card.applicableMembershipTypes) > 0:
             # this is cross save primary
-            return membership_from_user_info_card(cards)
+            return card
         else:
-            possible.append(cards)
+            possible.append(card)
     # no obvious primary, just return the first one
-    return membership_from_user_info_card(possible[0])
+    if len(possible) == 0:
+        log.debug("User Info cards: %s", cards)
+        raise RuntimeError("Could not find primary membership for cross save")
+    return possible[0]
+
+
+def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
+    return membership_from_user_info_card(find_cross_save_primary(cards))
+
+
+def player_from_user_search_response_detail(data: UserSearchResponseDetail) -> Player:
+    if is_empty(data.destinyMemberships):
+         raise ValueError(f"No memberships found for response {data}")
+    cross_save_primary = find_cross_save_primary(data.destinyMemberships)
+    return Player(
+        primary_membership=membership_from_user_info_card(cross_save_primary),
+        name=data.combined_global_display_name(),
+        bungie_id=data.bungieNetMembershipId,
+        all_names=_get_platform_names_from_user_info_cards(data.destinyMemberships),
+        is_private=not cross_save_primary.isPublic,
+        last_seen=None
+    )
 
 
 def player_from_user_membership_data(data: UserMembershipData) -> Player:
@@ -94,18 +136,6 @@ def player_from_destiny_player(destiny_player: DestinyPlayer) -> MinimalPlayerWi
         clan_name=destiny_player.clanName)
 
 
-def player_from_bungie_destiny_memberships(data: Dict[str, Any]) -> Player:
-    return Player(
-        bungie_id=data["membershipId"],
-        member_type="",
-        last_seen_name=data["uniqueName"],
-        last_on_destiny=None,
-        is_private=None,
-        all_names=_get_all_platform_names(data)
-
-    )
-
-
 def activity_from_destiny_activity(group: DestinyHistoricalStatsPeriodGroup) -> Activity:
     return Activity(
         instance_id=group.activityDetails.instanceId,
@@ -144,3 +174,8 @@ def _get_all_platform_names(data):
         platform_display_name = getattr(data, key)
         if platform_display_name is not None:
             platform_names[platform] = platform_display_name
+    return platform_names
+
+
+def _get_platform_names_from_user_info_cards(cards: Sequence[UserInfoCard]) -> Mapping[str, str]:
+    return {f"{_get_platform_for_type(card.membershipType)}DisplayName": card.displayName for card in cards}

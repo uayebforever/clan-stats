@@ -28,7 +28,7 @@ def default_before_validator(value: Any) -> Any:
 
 
 def smart_optional(wrapped_type):
-    """Used to ensure that we can also find fields named using snake case (for Bungio)."""
+    """Correctly handle bungio's MISSING sentinel."""
     return Annotated[Optional[wrapped_type], BeforeValidator(default_before_validator)]
 
 
@@ -68,7 +68,8 @@ class UserInfoCard(BaseModel):
     displayName: Annotated[str, BeforeValidator(unexpectedly_missing_string)]
 
     # applicableMembershipTypes: smart_optional(Sequence[int]) = Field(default_factory=list)
-    applicableMembershipTypes: Any = Field(default_factory=list)
+    applicableMembershipTypes: Sequence[Any] = Field(default_factory=list)
+    isPublic: bool
 
 
 class UserMembershipData(BaseModel):

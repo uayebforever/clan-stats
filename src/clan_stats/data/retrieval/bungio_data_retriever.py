@@ -11,15 +11,15 @@ from typing import Union, Sequence, Optional
 
 from bungio import Client
 from bungio.models import DestinyComponentType, BungieMembershipType, \
-    GroupsForMemberFilter, GroupType
+    GroupsForMemberFilter, GroupType, UserSearchPrefixRequest
 
 from clan_stats.data._bungie_api.api_helpers import activity_history_to
 from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data._bungie_api.bungie_type_adapters import player_from_group_member, player_from_user_membership_data, \
-    activity_from_destiny_activity, activity_with_post
+    activity_from_destiny_activity, activity_with_post, player_from_user_search_response_detail
 from clan_stats.data._bungie_api.bungie_types import GroupResponse, SearchResultOfGroupMember, DestinyProfileResponse, \
     UserMembershipData, GetGroupsForMemberResponse, DestinyActivityHistoryResults, DestinyHistoricalStatsPeriodGroup, \
-    DestinyPostGameCarnageReportData, DestinyManifest
+    DestinyPostGameCarnageReportData, DestinyManifest, UserSearchResponse
 from clan_stats.data._bungie_api.typed_wrapper import find_clan_group
 from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
@@ -27,7 +27,7 @@ from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import Player, MinimalPlayer, Character, Membership
 from clan_stats.util.async_utils import retrieve_paged
-from clan_stats.util.itertools import flatten, only
+from clan_stats.util.itertools import flatten, only, not_empty
 from clan_stats.util.stopwatch import Stopwatch
 from clan_stats.util.time import require_tz_aware_datetime
 
@@ -119,10 +119,15 @@ class BungioDataRetriever(DataRetriever):
                 await self._client.api.get_post_game_carnage_report(activity.instance_id)))
 
     async def find_players(self, identifier: Union[int, str]) -> Sequence[Player]:
-        raise NotImplementedError
-        # UserSearchPrefixRequest.
-        # response = UserSearchResponse.model_validate(
-        #     await self._client.api.search_by_global_name_post())
+        # raise NotImplementedError
+        if isinstance(identifier, str):
+            data = UserSearchPrefixRequest(display_name_prefix=identifier)
+            response = UserSearchResponse.model_validate(
+                await self._client.api.search_by_global_name_post(data, page=0))
+            return [player_from_user_search_response_detail(detail)
+                    for detail in response.searchResults if not_empty(detail.destinyMemberships)]
+        else:
+            raise NotImplementedError("Search by Bungie (integer) ID not supported yet.")
 
     async def get_manifest(self) -> Manifest:
 

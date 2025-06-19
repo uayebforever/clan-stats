@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import NamedTuple, Any, Optional, Dict
+from typing import NamedTuple, Any, Optional, Dict, Mapping
 from pydantic import BaseModel, Field
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType
 
 
 class Membership(BaseModel):
-    model_config= {"frozen": True}
+    model_config = {"frozen": True}
 
     membership_id: int
     membership_type: MembershipType
@@ -27,6 +27,7 @@ class MinimalPlayer(BaseModel):
         else:
             return False
 
+
 class GroupMinimalPlayer(MinimalPlayer):
     last_online: datetime
     group_join_date: datetime
@@ -37,13 +38,14 @@ class MinimalPlayerWithClan(MinimalPlayer):
 
 
 class Player(MinimalPlayer):
-    bungie_id: int
+    bungie_id: Optional[int]
     is_private: Optional[bool]
-    all_names: Optional[Dict[str, Optional[str]]]
+    all_names: Optional[Mapping[str, Optional[str]]]
     last_seen: Optional[datetime]
 
     def minimal_player(self) -> MinimalPlayer:
         return MinimalPlayer(primary_membership=self.primary_membership, name=self.name)
+
 
 class Character(BaseModel):
     membership: Membership
@@ -51,7 +53,3 @@ class Character(BaseModel):
     character_type: CharacterType
     power_level: int
     player: MinimalPlayer
-
-
-def last_seen(player: Player):
-    return player.last_on_destiny
