@@ -34,6 +34,7 @@ async def _get_data(data_retriever: DataRetriever, player_id: int, days: int) ->
     Player, Clan, Manifest, Sequence[ActivityWithPost]]:
     async with data_retriever:
         player = await data_retriever.get_player(player_id)
+        logger.debug("Minimal player for given player id %s", player)
         clan = await data_retriever.get_clan_for_player(player)
         manifest = await data_retriever.get_manifest()
         ago = days_ago(days)

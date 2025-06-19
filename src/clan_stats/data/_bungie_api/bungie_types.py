@@ -31,6 +31,10 @@ def smart_optional(wrapped_type):
     """Used to ensure that we can also find fields named using snake case (for Bungio)."""
     return Annotated[Optional[wrapped_type], BeforeValidator(default_before_validator)]
 
+def unexpectedly_missing_string(value: Any) -> Any:
+    if value is bungio.models.MISSING or value is None:
+        return "???"
+    return value
 
 class GeneralUser(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
@@ -57,7 +61,10 @@ class UserInfoCard(BaseModel):
 
     membershipType: MembershipType
     membershipId: int
-    displayName: str
+
+    # For some reason, long running activities with many players have a Post game with missing names.
+    displayName: Annotated[str, BeforeValidator(unexpectedly_missing_string)]
+
     # applicableMembershipTypes: smart_optional(Sequence[int]) = Field(default_factory=list)
     applicableMembershipTypes: Any = Field(default_factory=list)
 
