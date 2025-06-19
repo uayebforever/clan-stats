@@ -1,13 +1,17 @@
 import asyncio
-import itertools
 import logging
+import os
+import shutil
+import tempfile
+import urllib.request
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Union, Sequence, Optional
 
 from bungio import Client
-from bungio.models import DestinyClan, RuntimeGroupMemberType, DestinyComponentType, BungieMembershipType, \
-    GroupsForMemberFilter, GroupType, UserSearchPrefixRequest
+from bungio.models import DestinyComponentType, BungieMembershipType, \
+    GroupsForMemberFilter, GroupType
 
 from clan_stats.data._bungie_api.api_helpers import activity_history_to
 from clan_stats.data._bungie_api.bungie_enums import GameMode
@@ -15,7 +19,7 @@ from clan_stats.data._bungie_api.bungie_type_adapters import player_from_group_m
     activity_from_destiny_activity, activity_with_post
 from clan_stats.data._bungie_api.bungie_types import GroupResponse, SearchResultOfGroupMember, DestinyProfileResponse, \
     UserMembershipData, GetGroupsForMemberResponse, DestinyActivityHistoryResults, DestinyHistoricalStatsPeriodGroup, \
-    DestinyPostGameCarnageReportData, UserSearchResponse
+    DestinyPostGameCarnageReportData, DestinyManifest
 from clan_stats.data._bungie_api.typed_wrapper import find_clan_group
 from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
@@ -23,7 +27,7 @@ from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import Player, MinimalPlayer, Character, Membership
 from clan_stats.util.async_utils import retrieve_paged
-from clan_stats.util.itertools import flatten
+from clan_stats.util.itertools import flatten, only
 from clan_stats.util.stopwatch import Stopwatch
 from clan_stats.util.time import require_tz_aware_datetime
 
@@ -121,16 +125,35 @@ class BungioDataRetriever(DataRetriever):
         #     await self._client.api.search_by_global_name_post())
 
     async def get_manifest(self) -> Manifest:
+
         logger.debug("Retrieving Destiny Manifest")
         stopwatch = Stopwatch.started()
         target_dir = Path.cwd()
         target_filebase = "manifest"
         target_extension = "sqlite3"
 
-        manifest_path = target_dir.joinpath(target_filebase + "." + target_extension)
+        manifest_url_base = "https://www.bungie.net/"
+
+        manifest = DestinyManifest.model_validate(await self._client.api.get_destiny_manifest())
+        download_path = manifest.mobileWorldContentPaths['en']
+
+        output_download_path = download_path.replace("/", "_")
+        manifest_path = target_dir.joinpath(f"{target_filebase}_{output_download_path}.{target_extension}")
 
         if not manifest_path.exists():
-            raise RuntimeError("manifest not downloaded?!")
+            logger.debug("Downloading new manifest from %s", download_path)
+            self._remove_old_manifests(target_dir, target_filebase, target_extension)
+            with (
+                urllib.request.urlopen(manifest_url_base + download_path) as response,
+                tempfile.TemporaryFile() as tmpfile,
+                open(manifest_path, 'wb') as output_file
+            ):
+                shutil.copyfileobj(response, tmpfile)
+                with zipfile.ZipFile(tmpfile, 'r') as zipped:
+                    file = only(zipped.namelist())
+                    bytes = zipped.read(file)
+                    output_file.write(bytes)
+            logger.info("Downloaded and unzipped manifest to %s", manifest_path)
 
         logger.debug("Retrieved manifest to %s in %s", manifest_path, stopwatch.elapsed())
         return SqliteManifest(manifest_path)
@@ -155,3 +178,8 @@ class BungioDataRetriever(DataRetriever):
             return response.activities
 
         return await retrieve_paged(_get_page, enough=activity_history_to(min_start_date))
+
+    def _remove_old_manifests(self, manifest_dir: Path, target_base: str,  target_extension: str) -> None:
+        for path in manifest_dir.glob(f"{target_base}_*.{target_extension}"):
+            logger.debug("Removing old manifest %s", path)
+            os.unlink(path)

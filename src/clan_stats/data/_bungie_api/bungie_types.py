@@ -31,10 +31,12 @@ def smart_optional(wrapped_type):
     """Used to ensure that we can also find fields named using snake case (for Bungio)."""
     return Annotated[Optional[wrapped_type], BeforeValidator(default_before_validator)]
 
+
 def unexpectedly_missing_string(value: Any) -> Any:
     if value is bungio.models.MISSING or value is None:
         return "???"
     return value
+
 
 class GeneralUser(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
@@ -130,6 +132,13 @@ class GroupUserInfoCard(BaseModel):
                 and self.bungieGlobalDisplayNameCode is not None):
             return display_name_from_name_and_code(self.bungieGlobalDisplayName, self.bungieGlobalDisplayNameCode)
         return self.LastSeenDisplayName
+
+
+class DestinyManifest(BaseModel):
+    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases, extra='allow')
+
+    version: str
+    mobileWorldContentPaths: Mapping[str, str]
 
 
 class GroupMember(BaseModel):
@@ -233,6 +242,7 @@ class DestinyPostGameCarnageReportData(BaseModel):
 
     period: datetime
     activityDetails: DestinyHistoricalStatsActivity
+    activityWasStartedFromBeginning: Optional[bool]
     entries: Sequence[DestinyPostGameCarnageReportEntry]
 
 

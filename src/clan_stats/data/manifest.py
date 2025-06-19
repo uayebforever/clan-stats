@@ -4,6 +4,7 @@ import json
 from functools import cache
 
 from pathlib import Path
+from typing import Mapping
 
 
 class Manifest(abc.ABC):
@@ -34,7 +35,7 @@ class SqliteManifest(Manifest):
         assert self.dbconnection is not None
 
     @cache
-    def _get_activity_name_data(self):
+    def _get_activity_name_data(self) -> Mapping[str, str]:
         self._check_loaded()
         return {k: json.loads(v) for k, v in
                 self.dbconnection.cursor().execute("SELECT * FROM DestinyActivityDefinition").fetchall()}

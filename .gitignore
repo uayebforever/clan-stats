@@ -15,3 +15,4 @@ clan_stats_config.yaml
 clan-stats.log
 clan_database_*.sqlite
 manifest.sqlite3
+manifest_*.sqlite3
