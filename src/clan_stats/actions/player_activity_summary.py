@@ -41,10 +41,9 @@ async def _get_data(data_retriever: DataRetriever, player_id: int, days: int) ->
             player,
             min_start_date=ago)
 
-        activities_with_post = []
         logger.debug("Limiting to %s", ago)
-        for a in filter_activities_by_date(activities, ago):
-            activities_with_post.append(await data_retriever.get_post_for_activity(a))
+        activities_with_post = await asyncio.gather(*[data_retriever.get_post_for_activity(a)
+            for a in filter_activities_by_date(activities, ago)])
 
     return player, clan, manifest, activities_with_post
 
