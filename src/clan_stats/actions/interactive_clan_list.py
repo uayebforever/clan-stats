@@ -116,7 +116,7 @@ class UpdatingTable(DataTable, Generic[_R]):
                   self.name, self.current_sort[0].value, self.current_sort[1])
 
     def action_reverse_sort(self):
-        if self.sort_list is None:
+        if self.sort_list is None or self.current_sort is None:
             self.action_sort()
         self.current_sort = self.current_sort[0], not self.current_sort[1]
         self.sort(self.current_sort[0], reverse=self.current_sort[1], key=lambda v: str(v).lower())
@@ -183,9 +183,13 @@ class UnknownPlayersTable(UpdatingTable[GroupMinimalPlayer]):
     def update(self, row_list: Sequence[GroupMinimalPlayer]) -> None:
         super().update(row_list)
         if len(row_list) == 0:
-            self.add_class("hidden")
+            area = self.query_ancestor(".area", Vertical)
+            area.add_class("hidden")
+            self.disabled = True
         else:
-            self.remove_class("hidden")
+            area = self.query_ancestor(".area", Vertical)
+            area.remove_class("hidden")
+            self.disabled = False
 
 class MembersTable(UpdatingTable[Member]):
     BINDINGS = [
