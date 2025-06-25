@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
@@ -9,6 +10,7 @@ from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import GroupMinimalPlayer
 from clan_stats.util.itertools import only
 
+log = logging.getLogger(__name__)
 
 class Status(StrEnum):
     NEW = "new"
@@ -48,10 +50,11 @@ class ClanMembershipDatabase:
         yield from self.current_members()
         yield from self.past_members()
 
-    def get_discord_name(self, bungie_id: int):
-        for member in self.current_members():
+    def get_discord_name(self, bungie_id: int) -> str:
+        for member in self.all_members():
             if member.bungie_id() == bungie_id:
                 return only(member.active_accounts(AccountType.DISCORD)).account_identifier
+        raise ValueError(f"Bungie ID {bungie_id} not found.")
 
     def save_changes(self):
         self.delegate.commit_changes()
@@ -118,14 +121,5 @@ def find_unknown_players(clan_database: ClanMembershipDatabase,
     unknown_players = [
         p for p in bungie_clan.players if str(p.primary_membership.membership_id) not in known_bungie_ids
     ]
+    log.debug("Unknown players: %s", unknown_players)
     return unknown_players
-
-
-def find_known_players(clan_database: ClanMembershipDatabase,
-                       bungie_clan: Clan) -> Sequence[GroupMinimalPlayer]:
-    known_bungie_ids = [
-        only(m.active_accounts(AccountType.BUNGIE)).account_identifier for m in clan_database.all_members()]
-    known_players = [
-        p for p in bungie_clan.players if str(p.primary_membership.membership_id) in known_bungie_ids
-    ]
-    return known_players

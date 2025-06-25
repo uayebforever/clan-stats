@@ -1,18 +1,19 @@
 import asyncio
 from datetime import datetime, timezone
-from typing import List, Tuple, Mapping, Sequence, Optional
+from typing import Tuple, Mapping, Sequence, Optional
 
 from aiobungie import GameMode
-from clan_stats.clan_manager import ClanMembershipDatabase
-from clan_stats.clan_manager.clan_membership_database import find_unknown_players, find_known_players
+from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member
 from clan_stats.clan_manager.membership_database import MembershipDatabase
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
-from clan_stats.data.types.individuals import Player, MinimalPlayer, GroupMinimalPlayer
+from clan_stats.data.types.individuals import MinimalPlayer, GroupMinimalPlayer
 from clan_stats.terminal import term, MessageType
 from clan_stats.util.async_utils import collect_map
-from clan_stats.util.optional import require_else
+from clan_stats.util.itertools import not_empty, only
+from clan_stats.util.optional import require_else, require
+from clan_stats.util.set_helpers import find_differences
 
 
 def activity_summary(clan_id: int,
@@ -23,8 +24,7 @@ def activity_summary(clan_id: int,
 
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 
-    missing = find_unknown_players(clan_database, clan)
-    found = find_known_players(clan_database, clan)
+    found, missing, new_unknown = _find_discrepancies(clan, clan_database)
 
     if sort_by == "name":
         def name_key(player: MinimalPlayer):
@@ -34,7 +34,7 @@ def activity_summary(clan_id: int,
     elif sort_by == "active":
         sorted_players = _sort_by_last_active(found, last_active)
     elif sort_by == "discord":
-        def discord_sort_key(player: MinimalPlayer):
+        def discord_sort_key(player: MinimalPlayer) -> str:
             return clan_database.get_discord_name(player.primary_membership.membership_id).lower()
 
         sorted_players = list(sorted(found, key=discord_sort_key))
@@ -42,31 +42,37 @@ def activity_summary(clan_id: int,
         raise ValueError(f"Sort option {sort_by} unknown")
 
     term.print(MessageType.TEXT,
-               f"Bungie clan members: {len(clan.players)}  Discord members: {len(list(clan_database.current_members()))}")
+               f"Total members: {len(list(clan_database.current_members()))}, players in the bungie clan: {len(clan.players)}  ")
 
-    term.print(MessageType.TEXT, "Bungie Clan Members")
+    term.print(MessageType.TEXT, "Members found in Bungie Clan")
     for i, player in enumerate(sorted_players):
         term.print_player_line(player,
                                discord_name=clan_database.get_discord_name(player.primary_membership.membership_id),
                                last_active=last_active[player.name],
-                               index=i)
+                               index=i + 1)
 
-    if len(found) < len(list(clan_database.current_members())):
+    if not_empty(missing):
         term.skip()
-        term.warning("There is at least one discord member that was not found in the Bungie clan list!!!")
-        mismatch = (set(m.bungie_id() for m in clan_database.current_members())
-                    - set(p.primary_membership.membership_id for p in clan.players))
-        missing_members = [m for m in clan_database.current_members() if m.bungie_id() not in mismatch]
-        for member in sorted(missing_members, key=lambda m: m.bungie_name()):
-            print(f"   {member.bungie_name()} / @{member.discord_name()}")
+        term.warning("Members not in bungie clan:")
+        for member in sorted(missing, key=lambda m: require(m.bungie_name())):
+            term.print(MessageType.TEXT, f"   {member.bungie_name()} / @{member.discord_name()}")
 
-    print(f"\nMissing players: ({len(missing)})")
-    for player in sorted(missing, key=lambda x: x.primary_membership.membership_id):
-        if isinstance(player, GroupMinimalPlayer):
-            join_date = "Joined " + player.group_join_date.strftime("%-d %B %Y")
-        else:
-            join_date = None
+    term.print(MessageType.TEXT, f"\nPlayers in bungie clan not found in membership database: ({len(new_unknown)})")
+    for player in sorted(new_unknown, key=lambda x: x.primary_membership.membership_id):
+        join_date = "Joined " + player.group_join_date.strftime("%-d %B %Y")
         term.print_player_line(player, discord_name=join_date)
+
+
+def _find_discrepancies(clan: Clan, clan_database: ClanMembershipDatabase
+                        ) -> Tuple[Sequence[GroupMinimalPlayer], Sequence[Member], Sequence[GroupMinimalPlayer]]:
+    differences = find_differences(
+        clan.players, lambda p: str(p.primary_membership.membership_id),
+        clan_database.current_members(), lambda m: only(m.active_accounts(AccountType.BUNGIE)).account_identifier,
+    )
+    new_unknown = differences.in_first
+    found = differences.in_both
+    missing = differences.in_second
+    return found, missing, new_unknown
 
 
 def _sort_by_last_active(players: Sequence[MinimalPlayer],
@@ -104,12 +110,3 @@ async def get_most_recent_activity(data_retriever: DataRetriever,
     player_activities = await collect_map({p.name: data_retriever.get_activities_for_player(p, mode=mode)
                                            for p in players})
     return await _get_most_recently_active(player_activities)
-
-
-def _not_in_member_db(
-        clan: Clan, clan_database: ClanMembershipDatabase) -> Tuple[List[Player], Sequence[GroupMinimalPlayer]]:
-    members = {d.bungie_id() for d in clan_database.current_members() if d.bungie_id() is not None}
-    bungie = {p.primary_membership.membership_id for p in clan.players}
-
-    found = [clan.player_by_name(n) for n in bungie.intersection(members)]
-    return found, find_unknown_players(clan_database, clan)
