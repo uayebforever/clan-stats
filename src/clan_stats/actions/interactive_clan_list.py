@@ -194,6 +194,7 @@ class UnknownPlayersTable(UpdatingTable[GroupMinimalPlayer]):
 class MembersTable(UpdatingTable[Member]):
     BINDINGS = [
         ("e", 'edit', "Edit member"),
+        ("a", 'add', "Add member"),
     ]
 
     COLUMNS: ClassVar[Sequence[ColumnSpec[Member]]] = (
@@ -210,6 +211,19 @@ class MembersTable(UpdatingTable[Member]):
 
     def action_edit(self):
         member = self.selected_object()
+
+        self.app.push_screen(
+            MemberEditor(self._membership_database, member=member),
+            callback=lambda result: self.app._update_all())
+
+    def action_add(self):
+        log.info("Adding new member manually")
+        member = self._membership_database.new_member(
+            bungie_primary_membership_id=0,
+            bungie_display_name="",
+            discord_username="",
+            join_date=date.today()
+        )
 
         self.app.push_screen(
             MemberEditor(self._membership_database, member=member),
