@@ -9,4 +9,5 @@
   ],
   "reportAttributeAccessIssue": "none",
   "reportUnusedParameter": "none",
+  "reportDeprecated": "none"
 }

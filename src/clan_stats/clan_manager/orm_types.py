@@ -1,13 +1,16 @@
+from datetime import date
 from enum import StrEnum
-from typing import Sequence, Optional
+from typing import Sequence, Optional, final
 
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Boolean
-from sqlalchemy.orm import declarative_base, relationship
+# @formatter:off
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Boolean  # pyright: ignore [reportMissingImports, reportUnknownVariableType]
+from sqlalchemy.orm import declarative_base, relationship  # pyright: ignore [reportMissingImports, reportUnknownVariableType]
+# @formatter:on
 
 from clan_stats.util.itertools import first
 from clan_stats.util.optional import map_optional
 
-Base = declarative_base()
+Base = declarative_base()  # pyright: ignore [reportUnknownVariableType]
 
 
 class AccountType(StrEnum):
@@ -15,16 +18,19 @@ class AccountType(StrEnum):
     DISCORD = "discord"
 
 
-class Member(Base):
+@final
+class Member(Base):  # pyright: ignore [reportUntypedBaseClass]
     __tablename__ = "member"
 
-    id = Column(Integer, primary_key=True)
+    # @formatter:off
+    id: int = Column(Integer, primary_key=True)  # pyright: ignore [reportUnknownVariableType]
 
-    first_join = Column(Date)
-    notes = Column(Text)
+    first_join: date = Column(Date)  # pyright: ignore [reportUnknownVariableType]
+    notes: str = Column(Text)  # pyright: ignore [reportUnknownVariableType]
 
-    accounts = relationship('Account', back_populates='member', cascade="all, delete-orphan")
-    membership_history = relationship('MembershipStatus', back_populates='member', cascade="all, delete-orphan")
+    accounts: Sequence['Account'] = relationship('Account', back_populates='member', cascade="all, delete-orphan")  # pyright: ignore [reportUnknownVariableType]
+    membership_history: Sequence['MembershipStatus'] = relationship('MembershipStatus', back_populates='member', cascade="all, delete-orphan")  # pyright: ignore [reportUnknownVariableType]
+    # @formatter:on
 
     def current_status(self) -> 'MembershipStatus':
         return first(sorted(self.membership_history, key=lambda s: s.date_conferred, reverse=True))
@@ -48,7 +54,7 @@ class Member(Base):
         return discord_accounts[0]
 
     def bungie_id(self) -> Optional[int]:
-        return int(map_optional(self._primary_bungie_account(), lambda m: m.account_identifier))
+        return map_optional(self._primary_bungie_account(), lambda m: int(m.account_identifier))
 
     def bungie_name(self) -> Optional[str]:
         return map_optional(self._primary_bungie_account(), lambda m: m.name)
@@ -57,27 +63,33 @@ class Member(Base):
         return map_optional(self._primary_discord_account(), lambda m: m.name)
 
 
-class Account(Base):
+@final
+class Account(Base):  # pyright: ignore [reportUntypedBaseClass]
     __tablename__ = "account"
 
-    id = Column(Integer, primary_key=True)
-    member_id = Column(Integer, ForeignKey(f"{Member.__tablename__}.id"), nullable=False)
-    member = relationship('Member', back_populates='accounts')
+    # @formatter:off
+    id: int = Column(Integer, primary_key=True)  # pyright: ignore [reportUnknownVariableType]
+    member_id: int = Column(Integer, ForeignKey(f"{Member.__tablename__}.id"), nullable=False)  # pyright: ignore [reportUnknownVariableType]
+    member: Member = relationship('Member', back_populates='accounts')  # pyright: ignore [reportUnknownVariableType]
 
-    account_type = Column(String)
-    name = Column(String)
-    account_identifier = Column(String)
-    is_active = Column(Boolean, default=True)
-    note = Column(Text)
+    account_type: str = Column(String)  # pyright: ignore [reportUnknownVariableType]
+    name: str = Column(String)  # pyright: ignore [reportUnknownVariableType]
+    account_identifier: str = Column(String)  # pyright: ignore [reportUnknownVariableType]
+    is_active: bool = Column(Boolean, default=True)  # pyright: ignore [reportUnknownVariableType]
+    note: str = Column(Text)  # pyright: ignore [reportUnknownVariableType]
+    # @formatter:on
 
 
-class MembershipStatus(Base):
+@final
+class MembershipStatus(Base):  # pyright: ignore [reportUntypedBaseClass]
     __tablename__ = "membership_status"
 
-    id = Column(Integer, primary_key=True)
-    member_id = Column(Integer, ForeignKey(f"{Member.__tablename__}.id"), nullable=False)
-    member = relationship('Member', back_populates='membership_history')
+    # @formatter:off
+    id: int = Column(Integer, primary_key=True) # pyright: ignore [reportUnknownVariableType]
+    member_id: int = Column(Integer, ForeignKey(f"{Member.__tablename__}.id"), nullable=False) # pyright: ignore [reportUnknownVariableType]
+    member: Member = relationship('Member', back_populates='membership_history') # pyright: ignore [reportUnknownVariableType]
 
-    status = Column(String)
-    date_conferred = Column(Date)
-    notes = Column(Text)
+    status: str = Column(String) # pyright: ignore [reportUnknownVariableType]
+    date_conferred: date = Column(Date) # pyright: ignore [reportUnknownVariableType]
+    notes: str = Column(Text) # pyright: ignore [reportUnknownVariableType]
+    # @formatter:on
