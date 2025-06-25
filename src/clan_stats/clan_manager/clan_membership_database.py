@@ -18,13 +18,15 @@ class Status(StrEnum):
     ADMIN = "admin"
     FOUNDER = "founder"
     UNTOUCHABLE = "untouchable"
+    ASSOCIATE = "associate"  # For people who are members but not part of the Bungie Clan.
+
     GHOST = "ghost"  # For people who leave the clan without any notice. Not used consistently.
     KICKED = "kicked"
     BANNED = "banned"
 
     @classmethod
     def active_statuses(cls) -> Collection['Status']:
-        return cls.NEW, cls.MEMBER, cls.ADMIN, cls.FOUNDER, cls.UNTOUCHABLE
+        return cls.NEW, cls.MEMBER, cls.ADMIN, cls.FOUNDER, cls.UNTOUCHABLE, cls.ASSOCIATE
 
 
 class ClanMembershipDatabase:
