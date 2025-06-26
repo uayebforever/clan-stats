@@ -138,6 +138,7 @@ class SavableInput(EscapableInput):
         super().__init__(*args, select_on_focus=False, **kwargs)
         self.save_hook = save_hook
         self.label = label
+        self.select_on_focus = False
 
     def on_mount(self):
         self.border_title = self.label
