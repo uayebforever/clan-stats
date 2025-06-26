@@ -2,7 +2,7 @@
 name = "clan_stats"
 version = "0.1.0"
 description = "Destiny 2 Clan Management Tool"
-requires-python = ">=3.10"
+requires-python = "~=3.11"  # Probably can be updated when we drop aiobungie.
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -16,7 +16,19 @@ dependencies = [
     "bungio",
     "tabulate",
     "textual",
-    "sqlalchemy[pysqlite]~=1.4",
+    "sqlalchemy~=1.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "types-mock",
+    "tox",
+    "build",
+    "flake8",
+    "basedpyright",
 ]
 
 [project.scripts]
@@ -29,6 +41,3 @@ clan-stats = "clan_stats.__main__:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
-#
-#[tool.setuptools.packages.find]
-#include = ["clan_stats"]
