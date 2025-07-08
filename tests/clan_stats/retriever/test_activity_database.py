@@ -1,4 +1,4 @@
-from clan_stats.data.retrieval.actvity_database import ActivityDatabase
+from clan_stats.data.retrieval.actvity_database import SimpleActivityDatabase
 from clan_stats.util.itertools import only
 from randomdata import random_activity
 
@@ -6,7 +6,7 @@ from randomdata import random_activity
 def test_activity_database_store_retrieve():
     base = dict()
 
-    db = ActivityDatabase(base)
+    db = SimpleActivityDatabase(base)
 
     activity = random_activity()
 

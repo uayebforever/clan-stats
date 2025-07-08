@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class Activity(BaseModel):
     model_config = ConfigDict(frozen=True)
+    
     instance_id: int
     director_activity_hash: int
     time_period: TimePeriod
@@ -36,6 +37,20 @@ class Activity(BaseModel):
 
 class ActivityWithPost(Activity):
     players: Sequence[MinimalPlayerWithClan]
+
+class ActivityInstance(BaseModel):
+    """This represents an activity instance, which potentially has multiple players in it.
+    
+    The design of the Destiny API is such that we can only infer the contents of this object by making
+    requests for a players activities and post game carnage reports. Therefore, these objects are often 
+    incomplete, and so we must track what we know vs what we could query for.
+
+    """
+    model_config = ConfigDict(frozen=True)
+
+    player_activity_data: Sequence[Activity]
+    post_game_carnage_report: Optional[]
+
 
 
 _T_Activity = TypeVar('_T_Activity', bound=Activity)

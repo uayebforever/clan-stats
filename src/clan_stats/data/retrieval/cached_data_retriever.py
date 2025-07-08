@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data._bungie_api.bungie_exceptions import PrivacyError
 from clan_stats.data.manifest import Manifest
-from clan_stats.data.retrieval.actvity_database import ActivityDatabase
+from clan_stats.data.retrieval.actvity_database import SimpleActivityDatabase
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.retrieval.databases import KeyValueDatabase
 from clan_stats.data.types.activities import Activity, ActivityWithPost
@@ -58,13 +58,13 @@ class CachedDataRetriever(DataRetriever):
             yield TimeStampedDataMappingWrapper(SerializedMapping(db))
 
     @contextlib.contextmanager
-    def activity_database(self, membership: Membership) -> Iterator[ActivityDatabase]:
+    def activity_database(self, membership: Membership) -> Iterator[SimpleActivityDatabase]:
         if not self._database_directory.exists():
             self._database_directory.mkdir()
         filename = f"activities_{membership.membership_id}_{membership.membership_type}.gdbm"
         db_path = self._database_directory.joinpath(filename).absolute()
         with KeyValueDatabase(db_path) as db:
-            yield ActivityDatabase(db)
+            yield SimpleActivityDatabase(db)
 
     async def get_player(self, player_id: int) -> Player:
         with self.database("players") as db:
