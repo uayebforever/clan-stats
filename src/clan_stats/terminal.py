@@ -2,7 +2,7 @@ import os
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Dict, List, TypeVar, Sequence, Tuple, Iterable, Optional
+from typing import Dict, List, TypeVar, Sequence, Tuple, Iterable, Optional, Iterator
 
 import blessed
 from tabulate import tabulate
@@ -10,6 +10,7 @@ from tabulate import tabulate
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.types.activities import ActivityWithPost
 from clan_stats.data.types.individuals import Player, MinimalPlayer, GroupMinimalPlayer
+from clan_stats.util.optional import require_else
 from clan_stats.util.time import format_time_as_delta, format_time_delta
 
 
@@ -48,7 +49,7 @@ class _Terminal(object):
         if not self._blocked:
             # last_seen = format_time_as_delta(player.last_on_destiny) if player.last_on_destiny else ""
             if isinstance(player, GroupMinimalPlayer) or last_active is not None:
-                last = last_active if last_active is not None else player.last_online
+                last = require_else(last_active , player.last_online)
                 last_seen = format_time_delta(last - datetime.now(timezone.utc))
                 if last_active is None:
                     last_seen += "*"
@@ -83,7 +84,7 @@ class _Terminal(object):
         if not self._blocked:
             self._print(self._terminal.yellow("WARNING: " + message))
 
-    def skip(self, lines=1):
+    def skip(self, lines: int=1):
         self._print(os.linesep * lines)
 
     def print(self, type: MessageType, message: str):
@@ -108,10 +109,10 @@ class _Terminal(object):
             for line_batch in _batch(sorted(str_list, key=lambda s: s.lower()), 3, pad=""):
                 term.print(MessageType.TEXT, "   {:30s}   {:30s}  {:30s}".format(*line_batch))
 
-    def _print(self, message):
+    def _print(self, message: str) -> None:
         print(self._terminal.truncate(message), flush=True)
 
-    def _write(self, message):
+    def _write(self, message: str) -> None:
         print(self._terminal.truncate(message), end="", flush=True)
 
     def buffer(self, type: MessageType, message: str):
@@ -129,13 +130,13 @@ class _Terminal(object):
     def _clear_error_buffer(self):
         self._clear_buffer(MessageType.ERROR)
 
-    def _clear_buffer(self, type):
+    def _clear_buffer(self, type: MessageType):
         buffer = self._buffer[type]
         while len(buffer) > 0:
             self.print(type, buffer.pop(0))
 
     @contextmanager
-    def status(self, message):
+    def status(self, message: str):
         if self._blocked:
             raise SystemExit("Multiple status context managers")
         self._write(message)
@@ -151,7 +152,7 @@ class _Terminal(object):
 T = TypeVar('T')
 
 
-def _batch(seq: Sequence[T], size: int, pad=None) -> Sequence[Tuple[T, T, T]]:
+def _batch(seq: Sequence[T], size: int, pad=None) -> Iterator[Tuple[T, T, T]]:
     for i in range(-(-len(seq) // size)):
         end = min(i * size + size, len(seq))
         if pad is not None and i * size + size > len(seq):

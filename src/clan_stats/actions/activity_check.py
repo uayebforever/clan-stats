@@ -57,7 +57,7 @@ def activity_summary(clan_id: int,
         for member in sorted(missing, key=lambda m: require(m.bungie_name())):
             term.print(MessageType.TEXT, f"   {member.bungie_name()} / @{member.discord_name()}")
 
-    term.print(MessageType.TEXT, f"\nPlayers in bungie clan not found in membership database: ({len(new_unknown)})")
+    term.print(MessageType.TEXT, f"\nPlayers in bungie clan not found in current memberships: ({len(new_unknown)})")
     for player in sorted(new_unknown, key=lambda x: x.primary_membership.membership_id):
         join_date = "Joined " + player.group_join_date.strftime("%-d %B %Y")
         term.print_player_line(player, discord_name=join_date)
