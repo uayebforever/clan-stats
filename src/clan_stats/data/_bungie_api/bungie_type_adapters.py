@@ -82,7 +82,8 @@ def player_from_group_member(group_member: GroupMember) -> GroupMinimalPlayer:
             membership_type=group_member.destinyUserInfo.membershipType),
         name=group_member.destinyUserInfo.best_name(),
         last_online=datetime.fromtimestamp(group_member.lastOnlineStatusChange, timezone.utc),
-        group_join_date=group_member.joinDate)
+        group_join_date=group_member.joinDate,
+        group_membership_type=group_member.memberType)
 
 
 def player_from_destiny_player(destiny_player: DestinyPlayer) -> MinimalPlayerWithClan:

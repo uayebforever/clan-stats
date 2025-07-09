@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import NamedTuple, Any, Optional, Dict
 from pydantic import BaseModel, Field
 
-from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType
+from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, ClanMemberType
 
 
 class Membership(BaseModel):
@@ -30,6 +30,7 @@ class MinimalPlayer(BaseModel):
 class GroupMinimalPlayer(MinimalPlayer):
     last_online: datetime
     group_join_date: datetime
+    group_membership_type: ClanMemberType
 
 
 class MinimalPlayerWithClan(MinimalPlayer):

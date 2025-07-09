@@ -1,4 +1,6 @@
 from enum import IntEnum
+from typing import final
+
 
 class EnumReprMixin:
 
@@ -7,7 +9,6 @@ class EnumReprMixin:
 
 
 class MembershipType(EnumReprMixin, IntEnum):
-
     NONE = 0
     XBOX = 1
     PSN = 2
@@ -19,12 +20,13 @@ class MembershipType(EnumReprMixin, IntEnum):
     BUNGIE = 254
     ALL = -1
 
-class CharacterType(EnumReprMixin, IntEnum):
 
+class CharacterType(EnumReprMixin, IntEnum):
     TITAN = 0
     HUNTER = 1
     WARLOCK = 2
     UNKNOWN = 3
+
 
 class GameMode(EnumReprMixin, IntEnum):
     """An Enum for all available gamemodes in Destiny 2."""
@@ -114,3 +116,15 @@ class GameMode(EnumReprMixin, IntEnum):
     IRONBANNERRIFT = 90
     IronBannerZoneControl = 91
     UNKNOWN = 92
+
+
+@final
+class ClanMemberType(IntEnum):
+    """An enum for bungie clan member types."""
+
+    NONE = 0
+    BEGINNER = 1
+    MEMBER = 2
+    ADMIN = 3
+    ACTING_FOUNDER = 4
+    FOUNDER = 5
