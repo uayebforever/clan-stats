@@ -1,10 +1,12 @@
 from datetime import timedelta, datetime, timezone
-from typing import Dict, Any, Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Mapping
 
+from clan_stats.data._bungie_api.bungie_enums import MembershipType
 from clan_stats.data._bungie_api.bungie_types import UserMembershipData, UserInfoCard, GroupMember, \
-    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue
+    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue, \
+    GeneralUser, GroupUserInfoCard
 from clan_stats.data.types.activities import Activity, ActivityWithPost
-from clan_stats.data.types.individuals import Player, Membership, MinimalPlayer, MinimalPlayerWithClan, \
+from clan_stats.data.types.individuals import Player, Membership, MinimalPlayerWithClan, \
     GroupMinimalPlayer
 from clan_stats.util.itertools import only, first
 from clan_stats.util.time import TimePeriod
@@ -19,6 +21,23 @@ SUPPORTED_PLATFORMS = [
     "twitch",
     "egs",
 ]
+
+
+def membership_type_to_platform_name(membershipType: MembershipType) -> str:
+    if membershipType is MembershipType.XBOX:
+        return "xbox"
+    if membershipType is MembershipType.PSN:
+        return "psn"
+    if membershipType is MembershipType.BLIZZARD:
+        return "blizzard"
+    if membershipType is MembershipType.STEAM:
+        return "steam"
+    if membershipType is MembershipType.STADIA:
+        return "stadia"
+    if membershipType is MembershipType.EPIC_GAMES_STORE:
+        return "egs"
+
+    raise ValueError(f"Unknown membership type {membershipType}")
 
 
 def _membership_has_id(membership_id: int) -> Callable[[UserInfoCard], bool]:
@@ -64,15 +83,28 @@ def player_from_user_membership_data(data: UserMembershipData) -> Player:
     else:
         membership = first(data.destinyMemberships)
 
-    return Player(
-        bungie_id=data.bungieNetUser.membershipId,
-        primary_membership=Membership(membership_id=membership.membershipId,
-                                      membership_type=membership.membershipType),
-        name=data.bungieNetUser.uniqueName,
-        last_seen=data.bungieNetUser.lastUpdate,
-        is_private=None,
-        all_names=_get_all_platform_names(data.bungieNetUser)
-    )
+    if data.bungieNetUser is not None:
+        return Player(
+            bungie_id=data.bungieNetUser.membershipId if data.bungieNetUser else 0,
+            primary_membership=Membership(membership_id=membership.membershipId,
+                                          membership_type=membership.membershipType),
+            name=membership.best_name(),
+            last_seen=data.bungieNetUser.lastUpdate,
+            is_private=None,
+            all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
+            # all_names=_get_all_platform_names(data.bungieNetUser)
+        )
+    else:
+        # User has no BNet account???
+        return Player(
+            bungie_id=0,
+            primary_membership=Membership(membership_id=membership.membershipId,
+                                          membership_type=membership.membershipType),
+            name=membership.best_name(),
+            last_seen=None,
+            is_private=None,
+            all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
+        )
 
 
 def player_from_group_member(group_member: GroupMember) -> GroupMinimalPlayer:
@@ -93,18 +125,6 @@ def player_from_destiny_player(destiny_player: DestinyPlayer) -> MinimalPlayerWi
             membership_type=destiny_player.destinyUserInfo.membershipType),
         name=destiny_player.best_name(),
         clan_name=destiny_player.clanName)
-
-
-def player_from_bungie_destiny_memberships(data: Dict[str, Any]) -> Player:
-    return Player(
-        bungie_id=data["membershipId"],
-        member_type="",
-        last_seen_name=data["uniqueName"],
-        last_on_destiny=None,
-        is_private=None,
-        all_names=_get_all_platform_names(data)
-
-    )
 
 
 def activity_from_destiny_activity(group: DestinyHistoricalStatsPeriodGroup) -> Activity:
@@ -138,10 +158,18 @@ def activity_with_post(activity: Activity,
     )
 
 
-def _get_all_platform_names(data):
+def _get_all_platform_names(data: GeneralUser) -> Mapping[str, str]:
     platform_names = {}
     for platform in SUPPORTED_PLATFORMS:
         key = f"{platform}DisplayName"
         platform_display_name = getattr(data, key)
         if platform_display_name is not None:
             platform_names[platform] = platform_display_name
+    return platform_names
+
+
+def _get_all_platform_names_from_memberships(memberships: Sequence[GroupUserInfoCard]) -> Mapping[str, str]:
+    platform_names = {}
+    for membership in memberships:
+        platform_names[membership_type_to_platform_name(membership.membershipType)] = membership.LastSeenDisplayName
+    return platform_names
