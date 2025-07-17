@@ -1,11 +1,9 @@
 import os
 from datetime import datetime
-from typing import Sequence, List, Optional
+from typing import Sequence, Optional
 
 import aiohttp
 from pydantic import BaseModel, TypeAdapter
-
-from clan_stats.util.optional import require_else
 
 TRIALS_REPORT_URL = (os.environ["DESTINY_TRIALS_REPORT_URL"]
                      if "DESTINY_TRIALS_REPORT_URL" in os.environ

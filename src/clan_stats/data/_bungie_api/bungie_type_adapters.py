@@ -83,28 +83,15 @@ def player_from_user_membership_data(data: UserMembershipData) -> Player:
     else:
         membership = first(data.destinyMemberships)
 
-    if data.bungieNetUser is not None:
-        return Player(
-            bungie_id=data.bungieNetUser.membershipId if data.bungieNetUser else 0,
-            primary_membership=Membership(membership_id=membership.membershipId,
-                                          membership_type=membership.membershipType),
-            name=membership.best_name(),
-            last_seen=data.bungieNetUser.lastUpdate,
-            is_private=None,
-            all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
-            # all_names=_get_all_platform_names(data.bungieNetUser)
-        )
-    else:
-        # User has no BNet account???
-        return Player(
-            bungie_id=0,
-            primary_membership=Membership(membership_id=membership.membershipId,
-                                          membership_type=membership.membershipType),
-            name=membership.best_name(),
-            last_seen=None,
-            is_private=None,
-            all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
-        )
+    return Player(
+        bungie_id=data.bungieNetUser.membershipId if data.bungieNetUser else 0,
+        primary_membership=Membership(membership_id=membership.membershipId,
+                                      membership_type=membership.membershipType),
+        name=membership.best_name(),
+        last_seen=data.bungieNetUser.lastUpdate if data.bungieNetUser else None,
+        is_private=None,
+        all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
+    )
 
 
 def player_from_group_member(group_member: GroupMember) -> GroupMinimalPlayer:
