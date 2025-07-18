@@ -1,15 +1,13 @@
 from datetime import datetime
-from typing import Optional, Sequence, Mapping, Any, TypeVar, Annotated
+from typing import Optional, Sequence, Mapping, Any, Annotated
 
 import bungio
 import bungio.models
-from pydantic import BaseModel, Field, ConfigDict, AliasGenerator, AliasChoices, BeforeValidator
+from pydantic import BaseModel, Field, ConfigDict, AliasGenerator, AliasChoices, BeforeValidator, field_validator
 from pydantic_core import PydanticUseDefault
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, GameMode
 from clan_stats.util.casing import to_snake_case
-
-_AdaptableType = TypeVar('_AdaptableType', bound='UpstreamAdapter')
 
 
 def display_name_from_name_and_code(name: str, code: int) -> str:
@@ -19,46 +17,47 @@ def display_name_from_name_and_code(name: str, code: int) -> str:
 validation_aliases = AliasGenerator(
     validation_alias=lambda field_name: AliasChoices(field_name, to_snake_case(field_name))
 )
+ALLOW_EXTRA = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
 
-def default_before_validator(value: Any) -> Any:
-    if value is bungio.models.MISSING:
-        raise PydanticUseDefault()
-    return value
-
-
-def smart_optional(wrapped_type):
-    """Used to ensure that we can also find fields named using snake case (for Bungio)."""
-    return Annotated[Optional[wrapped_type], BeforeValidator(default_before_validator)]
-
-
-def unexpectedly_missing_string(value: Any) -> Any:
+def unexpectedly_missing_string(value: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
     if value is bungio.models.MISSING or value is None:
         return "???"
-    return value
+    return value  # pyright: ignore [reportAny]
 
 
-class GeneralUser(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class BungieTypeBase(BaseModel):
+
+    @field_validator('*', mode='before')
+    @classmethod
+    def default_value_validator(cls, value: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
+        """This validator matches special default values provided by e.g. Bungio API"""
+        if value is bungio.models.MISSING:
+            raise PydanticUseDefault()
+        return value  # pyright: ignore [reportAny]
+
+
+class GeneralUser(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     membershipId: int
     uniqueName: str
     displayName: str
 
-    lastUpdate: smart_optional(datetime) = Field(default=None)
-    normalizedName: smart_optional(str) = Field(default=None)
+    lastUpdate: Optional[datetime] = Field(default=None)
+    normalizedName: Optional[str] = Field(default=None)
 
-    blizzardDisplayName: smart_optional(str) = Field(default=None)
-    egsDisplayName: smart_optional(str) = Field(default=None)
-    fbDisplayName: smart_optional(str) = Field(default=None)
-    psnDisplayName: smart_optional(str) = Field(default=None)
-    stadiaDisplayName: smart_optional(str) = Field(default=None)
-    steamDisplayName: smart_optional(str) = Field(default=None)
-    twitchDisplayName: smart_optional(str) = Field(default=None)
-    xboxDisplayName: smart_optional(str) = Field(default=None)
+    blizzardDisplayName: Optional[str] = Field(default=None)
+    egsDisplayName: Optional[str] = Field(default=None)
+    fbDisplayName: Optional[str] = Field(default=None)
+    psnDisplayName: Optional[str] = Field(default=None)
+    stadiaDisplayName: Optional[str] = Field(default=None)
+    steamDisplayName: Optional[str] = Field(default=None)
+    twitchDisplayName: Optional[str] = Field(default=None)
+    xboxDisplayName: Optional[str] = Field(default=None)
 
 
-class UserInfoCard(BaseModel):
+class UserInfoCard(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     membershipType: MembershipType
@@ -71,16 +70,16 @@ class UserInfoCard(BaseModel):
     applicableMembershipTypes: Any = Field(default_factory=list)
 
 
-class GroupUserInfoCard(BaseModel):
+class GroupUserInfoCard(BungieTypeBase):
     # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupUserInfoCard
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+    model_config = ALLOW_EXTRA
 
     membershipId: int
     membershipType: MembershipType
     LastSeenDisplayName: str
     LastSeenDisplayNameType: MembershipType
-    bungieGlobalDisplayName: smart_optional(str)
-    bungieGlobalDisplayNameCode: smart_optional(int)
+    bungieGlobalDisplayName: Optional[str]
+    bungieGlobalDisplayNameCode: Optional[int]
     displayName: str
     applicableMembershipTypes: Sequence[MembershipType]
 
@@ -91,22 +90,22 @@ class GroupUserInfoCard(BaseModel):
         return self.LastSeenDisplayName
 
 
-class UserMembershipData(BaseModel):
+class UserMembershipData(BungieTypeBase):
     # https://bungie-net.github.io/#/components/schemas/User.UserMembershipData
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
-    bungieNetUser: smart_optional(GeneralUser) = None
+    bungieNetUser: Optional[GeneralUser] = None
     destinyMemberships: Sequence[GroupUserInfoCard]
 
-    primaryMembershipId: smart_optional(int) = Field(default=None)
+    primaryMembershipId: Optional[int] = Field(default=None)
 
 
-class DestinyPlayer(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyPlayer(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     destinyUserInfo: UserInfoCard
-    bungieNetUserInfo: smart_optional(UserInfoCard) = Field(default=None)
-    clanName: smart_optional(str) = Field(default=None)
+    bungieNetUserInfo: Optional[UserInfoCard] = Field(default=None)
+    clanName: Optional[str] = Field(default=None)
 
     def best_name(self) -> str:
         if self.bungieNetUserInfo is not None:
@@ -114,8 +113,8 @@ class DestinyPlayer(BaseModel):
         return self.destinyUserInfo.displayName
 
 
-class DestinyCharacterComponent(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyCharacterComponent(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     membershipId: int  # Convenience duplicate
     membershipType: MembershipType  # Convenience duplicate
@@ -126,26 +125,26 @@ class DestinyCharacterComponent(BaseModel):
     light: int
 
 
-class DictionaryComponentResponseOfint64AndDestinyCharacterComponent(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DictionaryComponentResponseOfint64AndDestinyCharacterComponent(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     data: Mapping[int, DestinyCharacterComponent]
 
 
-class DestinyProfileResponse(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyProfileResponse(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
-    characters: smart_optional(DictionaryComponentResponseOfint64AndDestinyCharacterComponent)
+    characters: Optional[DictionaryComponentResponseOfint64AndDestinyCharacterComponent]
 
 
-class DestinyManifest(BaseModel):
-    model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases, extra='allow')
+class DestinyManifest(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     version: str
     mobileWorldContentPaths: Mapping[str, str]
 
 
-class GroupMember(BaseModel):
+class GroupMember(BungieTypeBase):
     # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupMember
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
@@ -154,12 +153,12 @@ class GroupMember(BaseModel):
     lastOnlineStatusChange: int
     groupId: int
     destinyUserInfo: GroupUserInfoCard
-    bungieNetUserInfo: smart_optional(UserInfoCard) = Field(default=None)
+    bungieNetUserInfo: Optional[UserInfoCard] = Field(default=None)
     joinDate: datetime
 
 
-class GroupV2(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class GroupV2(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     groupId: int
     name: str
@@ -167,53 +166,53 @@ class GroupV2(BaseModel):
     creationDate: datetime
 
 
-class GroupMembership(BaseModel):
+class GroupMembership(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     member: GroupMember
     group: GroupV2
 
 
-class GroupResponse(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class GroupResponse(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     detail: GroupV2
     founder: GroupMember
 
 
-class GetGroupsForMemberResponse(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class GetGroupsForMemberResponse(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     areAllMembershipsInactive: Mapping[int, bool]
     results: Sequence[GroupMembership]
 
 
-class SearchResultOfGroupMember(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class SearchResultOfGroupMember(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     results: Sequence[GroupMember]
     hasMore: bool
 
 
-class DestinyHistoricalStatsValuePair(BaseModel):
+class DestinyHistoricalStatsValuePair(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     value: float
     displayValue: str
 
 
-class DestinyHistoricalStatsValue(BaseModel):
+class DestinyHistoricalStatsValue(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     statId: str
     basic: DestinyHistoricalStatsValuePair
-    pga: smart_optional(DestinyHistoricalStatsValuePair) = None
-    weighted: smart_optional(DestinyHistoricalStatsValuePair) = None
-    activityId: smart_optional(int) = None
+    pga: Optional[DestinyHistoricalStatsValuePair] = None
+    weighted: Optional[DestinyHistoricalStatsValuePair] = None
+    activityId: Optional[int] = None
 
 
-class DestinyHistoricalStatsActivity(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyHistoricalStatsActivity(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     directorActivityHash: int
     instanceId: int
@@ -221,29 +220,29 @@ class DestinyHistoricalStatsActivity(BaseModel):
     modes: Sequence[GameMode]
 
 
-class DestinyHistoricalStatsPeriodGroup(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyHistoricalStatsPeriodGroup(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     period: datetime
     activityDetails: DestinyHistoricalStatsActivity
     values: Mapping[str, DestinyHistoricalStatsValue]
 
 
-class DestinyActivityHistoryResults(BaseModel):
+class DestinyActivityHistoryResults(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
-    activities: smart_optional(Sequence[DestinyHistoricalStatsPeriodGroup]) = Field(default_factory=list)
+    activities: Optional[Sequence[DestinyHistoricalStatsPeriodGroup]] = Field(default_factory=list)
 
 
-class DestinyPostGameCarnageReportEntry(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyPostGameCarnageReportEntry(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     player: DestinyPlayer
     characterId: int
 
 
-class DestinyPostGameCarnageReportData(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+class DestinyPostGameCarnageReportData(BungieTypeBase):
+    model_config = ALLOW_EXTRA
 
     period: datetime
     activityDetails: DestinyHistoricalStatsActivity
@@ -251,19 +250,19 @@ class DestinyPostGameCarnageReportData(BaseModel):
     entries: Sequence[DestinyPostGameCarnageReportEntry]
 
 
-class UserSearchResponseDetail(BaseModel):
+class UserSearchResponseDetail(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     bungieGlobalDisplayName: str
-    bungieGlobalDisplayNameCode: smart_optional(int)
-    bungieNetMembershipId: smart_optional(int) = None
+    bungieGlobalDisplayNameCode: Optional[int]
+    bungieNetMembershipId: Optional[int] = None
     destinyMemberships: Sequence[UserInfoCard]
 
     def combined_global_display_name(self):
         return display_name_from_name_and_code(self.bungieGlobalDisplayName, self.bungieGlobalDisplayNameCode)
 
 
-class UserSearchResponse(BaseModel):
+class UserSearchResponse(BungieTypeBase):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     searchResults: Sequence[UserSearchResponseDetail]
