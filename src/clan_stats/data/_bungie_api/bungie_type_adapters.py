@@ -7,7 +7,7 @@ from clan_stats.data._bungie_api.bungie_types import UserMembershipData, UserInf
     GeneralUser, GroupUserInfoCard
 from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.individuals import Player, Membership, MinimalPlayerWithClan, \
-    GroupMinimalPlayer
+    GroupMinimalPlayer, DetailedMembership, CrossSaveStatus
 from clan_stats.util.itertools import only, first
 from clan_stats.util.time import TimePeriod
 
@@ -40,8 +40,8 @@ def membership_type_to_platform_name(membershipType: MembershipType) -> str:
     raise ValueError(f"Unknown membership type {membershipType}")
 
 
-def _membership_has_id(membership_id: int) -> Callable[[UserInfoCard], bool]:
-    def func(card: UserInfoCard) -> bool:
+def _membership_has_id(membership_id: int) -> Callable[[GroupUserInfoCard], bool]:
+    def func(card: GroupUserInfoCard) -> bool:
         return card.membershipId == membership_id
 
     return func
@@ -55,7 +55,7 @@ def membership_from_user_info_card(card: UserInfoCard) -> Membership:
 
 
 def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
-    """From the bungie API docs
+    """From the bungie API docs:
     The list of Membership Types indicating the platforms on which this Membership can be used.
 
     Not in Cross Save = its original membership type. Cross Save Primary = Any membership types it is overridding,
@@ -75,6 +75,35 @@ def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
     return membership_from_user_info_card(possible[0])
 
 
+def _cross_save_status(applicableMembershipTypes: Sequence[MembershipType]) -> CrossSaveStatus:
+    # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupUserInfoCard
+    """From the bungie API docs:
+    The list of Membership Types indicating the platforms on which this Membership can be used.
+
+    Not in Cross Save = its original membership type.
+    Cross Save Primary = Any membership types it is overridding, and its original membership type
+    Cross Save Overridden = Empty list
+    """
+    if len(applicableMembershipTypes) == 0:
+        return CrossSaveStatus.OVERRIDDEN
+    if len(applicableMembershipTypes) == 1:
+        return CrossSaveStatus.NONE
+    return CrossSaveStatus.PRIMARY
+
+
+def _adapt_memberships_to_detailed_memberships(
+        destinyMemberships: Sequence[GroupUserInfoCard]) -> Mapping[str, DetailedMembership]:
+    result: dict[str, DetailedMembership] = {}
+    for membership in destinyMemberships:
+        result[membership_type_to_platform_name(membership.membershipType)] = DetailedMembership(
+            membership_id=membership.membershipId,
+            membership_type=membership.membershipType,
+            platform_display_name=membership.displayName,
+            cross_save_status=_cross_save_status(membership.applicableMembershipTypes)
+        )
+    return result
+
+
 def player_from_user_membership_data(data: UserMembershipData) -> Player:
     if data.primaryMembershipId is not None:
         membership = only(filter(
@@ -90,7 +119,7 @@ def player_from_user_membership_data(data: UserMembershipData) -> Player:
         name=membership.best_name(),
         last_seen=data.bungieNetUser.lastUpdate if data.bungieNetUser else None,
         is_private=None,
-        all_names=_get_all_platform_names_from_memberships(data.destinyMemberships)
+        all_memberships=_adapt_memberships_to_detailed_memberships(data.destinyMemberships)
     )
 
 
@@ -152,11 +181,4 @@ def _get_all_platform_names(data: GeneralUser) -> Mapping[str, str]:
         platform_display_name = getattr(data, key)
         if platform_display_name is not None:
             platform_names[platform] = platform_display_name
-    return platform_names
-
-
-def _get_all_platform_names_from_memberships(memberships: Sequence[GroupUserInfoCard]) -> Mapping[str, str]:
-    platform_names = {}
-    for membership in memberships:
-        platform_names[membership_type_to_platform_name(membership.membershipType)] = membership.LastSeenDisplayName
     return platform_names

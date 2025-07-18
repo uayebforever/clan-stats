@@ -5,7 +5,7 @@ from enum import Enum, IntEnum
 from functools import partial
 from typing import TypeVar, Type, Callable, Sequence, Optional
 
-from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, GameMode
+from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, GameMode, ClanMemberType
 from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import Player, Membership, MinimalPlayer, Character, GroupMinimalPlayer, \
@@ -51,8 +51,8 @@ def random_player() -> Player:
         name=random_string(),
         bungie_id=random_int(),
         is_private=False,
-        all_names=None,
-        last_seen=None
+        last_seen=None,
+        all_memberships=None,
     )
 
 
@@ -61,7 +61,8 @@ def random_group_minimal_player() -> GroupMinimalPlayer:
         primary_membership=random_membership(),
         name=random_string(),
         last_online=random_datetime(),
-        group_join_date=random_datetime()
+        group_join_date=random_datetime(),
+        group_membership_type=random_enum(ClanMemberType)
     )
 
 
@@ -84,7 +85,8 @@ def random_group_minimal_player() -> GroupMinimalPlayer:
         primary_membership=random_membership(),
         name=random_string(),
         last_online=random_datetime(),
-        group_join_date=random_datetime())
+        group_join_date=random_datetime(),
+        group_membership_type=random_enum(ClanMemberType))
 
 
 def random_clan() -> Clan:

@@ -81,6 +81,8 @@ class GroupUserInfoCard(BaseModel):
     LastSeenDisplayNameType: MembershipType
     bungieGlobalDisplayName: smart_optional(str)
     bungieGlobalDisplayNameCode: smart_optional(int)
+    displayName: str
+    applicableMembershipTypes: Sequence[MembershipType]
 
     def best_name(self) -> str:
         if (self.bungieGlobalDisplayName is not None

@@ -33,9 +33,12 @@ def print_players(players: Sequence[Player], search_string: str) -> None:
     term.print(MessageType.SUMMARY, f"Found {len(players)} players for search '{search_string}'")
     for player in players:
         term.print(MessageType.TEXT, f"{player.name}  ({player.primary_membership.membership_id})")
-        if player.all_names is not None:
-            for membership_type, name in player.all_names.items():
-                term.print(MessageType.TEXT, f"   {membership_type}: {name}")
+
+        if player.all_memberships is not None:
+            for platform, membership in player.all_memberships.items():
+                term.print(MessageType.TEXT,
+                           f"   {platform} ({membership.cross_save_status.single_letter()}): "
+                           + f"{membership.platform_display_name}")
 
 
 async def _get_data(data_retriever: DataRetriever, search_string: str) -> Sequence[Player]:

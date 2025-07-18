@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum, auto
 from typing import NamedTuple, Any, Optional, Dict, Mapping
 from pydantic import BaseModel, Field
 
@@ -6,10 +7,26 @@ from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterTy
 
 
 class Membership(BaseModel):
-    model_config= {"frozen": True}
+    model_config = {"frozen": True}
 
     membership_id: int
     membership_type: MembershipType
+
+
+class CrossSaveStatus(StrEnum):
+    PRIMARY = auto()
+    OVERRIDDEN = auto()
+    NONE = auto()
+
+    def single_letter(self) -> str:
+        if self is self.PRIMARY: return "P"
+        if self is self.OVERRIDDEN: return "O"
+        if self is self.NONE: return "N"
+        raise TypeError(f"Unknown CrossSaveStatus {self}")
+
+class DetailedMembership(Membership):
+    platform_display_name: str
+    cross_save_status: CrossSaveStatus
 
 
 class MinimalPlayer(BaseModel):
@@ -27,6 +44,7 @@ class MinimalPlayer(BaseModel):
         else:
             return False
 
+
 class GroupMinimalPlayer(MinimalPlayer):
     last_online: datetime
     group_join_date: datetime
@@ -40,11 +58,12 @@ class MinimalPlayerWithClan(MinimalPlayer):
 class Player(MinimalPlayer):
     bungie_id: int
     is_private: Optional[bool]
-    all_names: Optional[Mapping[str, Optional[str]]]
     last_seen: Optional[datetime]
+    all_memberships: Optional[Mapping[str, DetailedMembership]]
 
     def minimal_player(self) -> MinimalPlayer:
         return MinimalPlayer(primary_membership=self.primary_membership, name=self.name)
+
 
 class Character(BaseModel):
     membership: Membership

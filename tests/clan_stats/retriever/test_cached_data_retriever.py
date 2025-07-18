@@ -103,10 +103,11 @@ class TestCached:
 
         retriever = CachedDataRetriever(delegate, database_directory=tmp_path)
 
-        result = await retriever.get_activities_for_player(player)
-        await retriever.get_activities_for_player(player)
-        await retriever.get_activities_for_player(player)
-        await retriever.get_activities_for_player(player)
+        async with retriever:
+            result = await retriever.get_activities_for_player(player)
+            await retriever.get_activities_for_player(player)
+            await retriever.get_activities_for_player(player)
+            await retriever.get_activities_for_player(player)
 
         delegate.get_activities_for_player.assert_called_once_with(player, min_start_date=None)
 
