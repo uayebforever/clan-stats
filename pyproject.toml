@@ -12,6 +12,7 @@ dependencies = [
     "pydantic",
     "pydantic_yaml",
     "aiobungie",
+    "aiohttp",
     "blessed",
     "bungio",
     "tabulate",

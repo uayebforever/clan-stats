@@ -1,4 +1,6 @@
+import asyncio
 from argparse import ArgumentParser
+from typing import final
 
 from clan_stats.actions import player_activity_summary, player_search
 from clan_stats.config import ClanStatsConfig
@@ -6,6 +8,7 @@ from clan_stats.data.retrieval import get_data_retriever, DataRetrieverType
 from .command import Command
 
 
+@final
 class PlayerActivityReportCommand(Command):
     name = "activity-report"
     help = "Get an activity report for this player"
@@ -22,6 +25,7 @@ class PlayerActivityReportCommand(Command):
                                                  days=args.past_days)
 
 
+@final
 class FindPlayerCommand(Command):
     name = "find"
     help = "Find players"
@@ -30,7 +34,10 @@ class FindPlayerCommand(Command):
         parser.add_argument("identifier", help="Player id or search string")
 
     def execute(self, args, config: ClanStatsConfig) -> None:
-        player_search.player_search(get_data_retriever(DataRetrieverType(args.backend), config), args.identifier)
+        asyncio.run(
+            player_search.trials_report_player_search(
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                args.identifier))
 
 
 class PlayerCommand(Command):

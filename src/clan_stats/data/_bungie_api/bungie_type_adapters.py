@@ -1,11 +1,13 @@
 from datetime import timedelta, datetime, timezone
-from typing import Dict, Any, Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Mapping
 
+from clan_stats.data._bungie_api.bungie_enums import MembershipType
 from clan_stats.data._bungie_api.bungie_types import UserMembershipData, UserInfoCard, GroupMember, \
-    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue
+    DestinyHistoricalStatsPeriodGroup, DestinyPlayer, DestinyPostGameCarnageReportData, DestinyHistoricalStatsValue, \
+    GeneralUser, GroupUserInfoCard
 from clan_stats.data.types.activities import Activity, ActivityWithPost
-from clan_stats.data.types.individuals import Player, Membership, MinimalPlayer, MinimalPlayerWithClan, \
-    GroupMinimalPlayer
+from clan_stats.data.types.individuals import Player, Membership, MinimalPlayerWithClan, \
+    GroupMinimalPlayer, DetailedMembership, CrossSaveStatus
 from clan_stats.util.itertools import only, first
 from clan_stats.util.time import TimePeriod
 
@@ -21,8 +23,25 @@ SUPPORTED_PLATFORMS = [
 ]
 
 
-def _membership_has_id(membership_id: int) -> Callable[[UserInfoCard], bool]:
-    def func(card: UserInfoCard) -> bool:
+def membership_type_to_platform_name(membershipType: MembershipType) -> str:
+    if membershipType is MembershipType.XBOX:
+        return "xbox"
+    if membershipType is MembershipType.PSN:
+        return "psn"
+    if membershipType is MembershipType.BLIZZARD:
+        return "blizzard"
+    if membershipType is MembershipType.STEAM:
+        return "steam"
+    if membershipType is MembershipType.STADIA:
+        return "stadia"
+    if membershipType is MembershipType.EPIC_GAMES_STORE:
+        return "egs"
+
+    raise ValueError(f"Unknown membership type {membershipType}")
+
+
+def _membership_has_id(membership_id: int) -> Callable[[GroupUserInfoCard], bool]:
+    def func(card: GroupUserInfoCard) -> bool:
         return card.membershipId == membership_id
 
     return func
@@ -36,7 +55,7 @@ def membership_from_user_info_card(card: UserInfoCard) -> Membership:
 
 
 def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
-    """From the bungie API docs
+    """From the bungie API docs:
     The list of Membership Types indicating the platforms on which this Membership can be used.
 
     Not in Cross Save = its original membership type. Cross Save Primary = Any membership types it is overridding,
@@ -56,6 +75,35 @@ def primary_membership_from_cards(cards: Sequence[UserInfoCard]) -> Membership:
     return membership_from_user_info_card(possible[0])
 
 
+def _cross_save_status(applicableMembershipTypes: Sequence[MembershipType]) -> CrossSaveStatus:
+    # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupUserInfoCard
+    """From the bungie API docs:
+    The list of Membership Types indicating the platforms on which this Membership can be used.
+
+    Not in Cross Save = its original membership type.
+    Cross Save Primary = Any membership types it is overridding, and its original membership type
+    Cross Save Overridden = Empty list
+    """
+    if len(applicableMembershipTypes) == 0:
+        return CrossSaveStatus.OVERRIDDEN
+    if len(applicableMembershipTypes) == 1:
+        return CrossSaveStatus.NONE
+    return CrossSaveStatus.PRIMARY
+
+
+def _adapt_memberships_to_detailed_memberships(
+        destinyMemberships: Sequence[GroupUserInfoCard]) -> Mapping[str, DetailedMembership]:
+    result: dict[str, DetailedMembership] = {}
+    for membership in destinyMemberships:
+        result[membership_type_to_platform_name(membership.membershipType)] = DetailedMembership(
+            membership_id=membership.membershipId,
+            membership_type=membership.membershipType,
+            platform_display_name=membership.displayName,
+            cross_save_status=_cross_save_status(membership.applicableMembershipTypes)
+        )
+    return result
+
+
 def player_from_user_membership_data(data: UserMembershipData) -> Player:
     if data.primaryMembershipId is not None:
         membership = only(filter(
@@ -65,13 +113,13 @@ def player_from_user_membership_data(data: UserMembershipData) -> Player:
         membership = first(data.destinyMemberships)
 
     return Player(
-        bungie_id=data.bungieNetUser.membershipId,
+        bungie_id=data.bungieNetUser.membershipId if data.bungieNetUser else 0,
         primary_membership=Membership(membership_id=membership.membershipId,
                                       membership_type=membership.membershipType),
-        name=data.bungieNetUser.uniqueName,
-        last_seen=data.bungieNetUser.lastUpdate,
+        name=membership.best_name(),
+        last_seen=data.bungieNetUser.lastUpdate if data.bungieNetUser else None,
         is_private=None,
-        all_names=_get_all_platform_names(data.bungieNetUser)
+        all_memberships=_adapt_memberships_to_detailed_memberships(data.destinyMemberships)
     )
 
 
@@ -93,18 +141,6 @@ def player_from_destiny_player(destiny_player: DestinyPlayer) -> MinimalPlayerWi
             membership_type=destiny_player.destinyUserInfo.membershipType),
         name=destiny_player.best_name(),
         clan_name=destiny_player.clanName)
-
-
-def player_from_bungie_destiny_memberships(data: Dict[str, Any]) -> Player:
-    return Player(
-        bungie_id=data["membershipId"],
-        member_type="",
-        last_seen_name=data["uniqueName"],
-        last_on_destiny=None,
-        is_private=None,
-        all_names=_get_all_platform_names(data)
-
-    )
 
 
 def activity_from_destiny_activity(group: DestinyHistoricalStatsPeriodGroup) -> Activity:
@@ -138,10 +174,11 @@ def activity_with_post(activity: Activity,
     )
 
 
-def _get_all_platform_names(data):
+def _get_all_platform_names(data: GeneralUser) -> Mapping[str, str]:
     platform_names = {}
     for platform in SUPPORTED_PLATFORMS:
         key = f"{platform}DisplayName"
         platform_display_name = getattr(data, key)
         if platform_display_name is not None:
             platform_names[platform] = platform_display_name
+    return platform_names

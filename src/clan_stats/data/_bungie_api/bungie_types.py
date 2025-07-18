@@ -71,11 +71,32 @@ class UserInfoCard(BaseModel):
     applicableMembershipTypes: Any = Field(default_factory=list)
 
 
+class GroupUserInfoCard(BaseModel):
+    # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupUserInfoCard
+    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
+
+    membershipId: int
+    membershipType: MembershipType
+    LastSeenDisplayName: str
+    LastSeenDisplayNameType: MembershipType
+    bungieGlobalDisplayName: smart_optional(str)
+    bungieGlobalDisplayNameCode: smart_optional(int)
+    displayName: str
+    applicableMembershipTypes: Sequence[MembershipType]
+
+    def best_name(self) -> str:
+        if (self.bungieGlobalDisplayName is not None
+                and self.bungieGlobalDisplayNameCode is not None):
+            return display_name_from_name_and_code(self.bungieGlobalDisplayName, self.bungieGlobalDisplayNameCode)
+        return self.LastSeenDisplayName
+
+
 class UserMembershipData(BaseModel):
+    # https://bungie-net.github.io/#/components/schemas/User.UserMembershipData
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
-    bungieNetUser: GeneralUser
-    destinyMemberships: Sequence[UserInfoCard]
+    bungieNetUser: smart_optional(GeneralUser) = None
+    destinyMemberships: Sequence[GroupUserInfoCard]
 
     primaryMembershipId: smart_optional(int) = Field(default=None)
 
@@ -117,23 +138,6 @@ class DestinyProfileResponse(BaseModel):
     characters: smart_optional(DictionaryComponentResponseOfint64AndDestinyCharacterComponent)
 
 
-class GroupUserInfoCard(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
-
-    membershipId: int
-    membershipType: MembershipType
-    LastSeenDisplayName: str
-    LastSeenDisplayNameType: MembershipType
-    bungieGlobalDisplayName: smart_optional(str)
-    bungieGlobalDisplayNameCode: smart_optional(int)
-
-    def best_name(self) -> str:
-        if (self.bungieGlobalDisplayName is not None
-                and self.bungieGlobalDisplayNameCode is not None):
-            return display_name_from_name_and_code(self.bungieGlobalDisplayName, self.bungieGlobalDisplayNameCode)
-        return self.LastSeenDisplayName
-
-
 class DestinyManifest(BaseModel):
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases, extra='allow')
 
@@ -142,6 +146,7 @@ class DestinyManifest(BaseModel):
 
 
 class GroupMember(BaseModel):
+    # https://bungie-net.github.io/#/components/schemas/GroupsV2.GroupMember
     model_config = ConfigDict(from_attributes=True, alias_generator=validation_aliases)
 
     memberType: int

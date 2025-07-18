@@ -131,9 +131,8 @@ class AioBungieRestDataRetriever(DataRetriever):
                 name=result.combined_global_display_name(),
                 is_private=False,
                 last_seen=None,
-                primary_membership=
-                primary_membership_from_cards(result.destinyMemberships),
-                all_names={c.membershipType.name: c.displayName for c in result.destinyMemberships}
+                primary_membership=primary_membership_from_cards(result.destinyMemberships),
+                all_memberships=result.destinyMemberships
             ))
         return players
 
