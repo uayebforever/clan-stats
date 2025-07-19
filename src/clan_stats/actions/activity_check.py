@@ -10,6 +10,7 @@ from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import MinimalPlayer, GroupMinimalPlayer
 from clan_stats.terminal import term, MessageType
+from clan_stats.ui.lists import print_member_list, print_player_list
 from clan_stats.util.async_utils import collect_map
 from clan_stats.util.itertools import not_empty, only
 from clan_stats.util.optional import require_else, require
@@ -26,52 +27,49 @@ def activity_summary(clan_id: int,
 
     found, missing, new_unknown = _find_discrepancies(clan, clan_database)
 
-    if sort_by == "name":
-        def name_key(player: MinimalPlayer):
-            return player.name.lower()
-
-        sorted_players = list(sorted(found, key=name_key))
-    elif sort_by == "active":
-        sorted_players = _sort_by_last_active(found, last_active)
-    elif sort_by == "discord":
-        def discord_sort_key(player: MinimalPlayer) -> str:
-            return clan_database.get_discord_name(player.primary_membership.membership_id).lower()
-
-        sorted_players = list(sorted(found, key=discord_sort_key))
-    else:
-        raise ValueError(f"Sort option {sort_by} unknown")
+    # if sort_by == "name":
+    #     def name_key(player: MinimalPlayer):
+    #         return player.name.lower()
+    #
+    #     sorted_players = list(sorted(found, key=name_key))
+    # elif sort_by == "active":
+    #     sorted_players = _sort_by_last_active(found, last_active)
+    # elif sort_by == "discord":
+    #     def discord_sort_key(player: MinimalPlayer) -> str:
+    #         return clan_database.get_discord_name(player.primary_membership.membership_id).lower()
+    #     sorted_players = list(sorted(found, key=discord_sort_key))
+    # else:
+    #     raise ValueError(f"Sort option {sort_by} unknown")
 
     term.print(MessageType.TEXT,
                f"Total members: {len(list(clan_database.current_members()))}, players in the bungie clan: {len(clan.players)}  ")
 
-    term.print(MessageType.TEXT, "Members found in Bungie Clan")
-    for i, player in enumerate(sorted_players):
-        term.print_player_line(player,
-                               discord_name=clan_database.get_discord_name(player.primary_membership.membership_id),
-                               last_active=last_active[player.name],
-                               index=i + 1)
+    print_member_list(
+        found,
+        description="Members found in Bungie Clan ({count}):")
 
     if not_empty(missing):
         term.skip()
-        term.warning("Members not in bungie clan:")
-        for member in sorted(missing, key=lambda m: require(m.bungie_name())):
-            term.print(MessageType.TEXT, f"   {member.bungie_name()} / @{member.discord_name()}")
+        print_member_list(
+            missing,
+            description="Members not in Bungie Clan ({count}):")
 
-    term.print(MessageType.TEXT, f"\nPlayers in bungie clan not found in current memberships: ({len(new_unknown)})")
-    for player in sorted(new_unknown, key=lambda x: x.primary_membership.membership_id):
-        join_date = "Joined " + player.group_join_date.strftime("%-d %B %Y")
-        term.print_player_line(player, discord_name=join_date)
+    if not_empty(new_unknown):
+        term.skip()
+        print_player_list(
+            new_unknown,
+            description="Players in Bungie Clan not found in current memberships: ({count})")
 
 
 def _find_discrepancies(clan: Clan, clan_database: ClanMembershipDatabase
-                        ) -> Tuple[Sequence[GroupMinimalPlayer], Sequence[Member], Sequence[GroupMinimalPlayer]]:
+                        ) -> Tuple[Sequence[Member], Sequence[Member], Sequence[GroupMinimalPlayer]]:
     differences = find_differences(
-        clan.players, lambda p: str(p.primary_membership.membership_id),
         clan_database.current_members(), lambda m: only(m.active_accounts(AccountType.BUNGIE)).account_identifier,
+        clan.players, lambda p: str(p.primary_membership.membership_id),
     )
-    new_unknown = differences.in_first
+    new_unknown = differences.in_second
     found = differences.in_both
-    missing = differences.in_second
+    missing = differences.in_first
     return found, missing, new_unknown
 
 
