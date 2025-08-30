@@ -13,15 +13,14 @@ from clan_stats.data.types.individuals import Player, MinimalPlayer
 from clan_stats.util.time import format_time_period_weekday_and_time, TimePeriod
 
 
-def recent_clan_events(clan_id: int,
+async def recent_clan_events(clan_id: int,
                        data_retriever: DataRetriever,
                        recency_days: int = 30,
                        min_clan_fireteam_members: int = 3,
                        min_event_length: timedelta = timedelta(minutes=45)) -> None:
     recency_limit = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
-    shared_fireteams, players_in_range, manifest = asyncio.run(
-        _get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members))
+    shared_fireteams, players_in_range, manifest = await _get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members)
 
     term.print(MessageType.SECTION, "Bungie Clan Members active in the time range:")
     for player in players_in_range:

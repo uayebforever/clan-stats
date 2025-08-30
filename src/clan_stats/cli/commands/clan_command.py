@@ -8,6 +8,7 @@ from clan_stats.actions.search import clan_search
 from clan_stats.config import ClanStatsConfig
 from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data.retrieval import get_data_retriever, DataRetrieverType
+
 from .command import Command
 
 
@@ -30,12 +31,14 @@ class MemberActivitiesCommand(Command):
                                 help="Filter by activity type")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        activity_check.activity_summary(args.clan_id,
-                                        get_data_retriever(DataRetrieverType(args.backend), config),
-                                        sort_by=args.sort_by,
-                                        activity_mode=(GameMode.RAID
-                                                       if args.activity_type == "raid"
-                                                       else GameMode.NONE))
+        asyncio.run(
+            activity_check.activity_summary(
+                args.clan_id,
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                sort_by=args.sort_by,
+                activity_mode=(GameMode.RAID
+                               if args.activity_type == "raid"
+                               else GameMode.NONE)))
 
 
 @final
@@ -48,8 +51,10 @@ class InteractiveEditCommand(Command):
         # _discord_file_argument(parser, config)
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig):
-        interactive_clan_list.interactive_clan_list(args.clan_id,
-                                                    get_data_retriever(DataRetrieverType(args.backend), config))
+        asyncio.run(
+            interactive_clan_list.interactive_clan_list(
+                args.clan_id,
+                get_data_retriever(DataRetrieverType(args.backend), config)))
 
 
 @final
@@ -61,10 +66,12 @@ class ClanEventsCommand(Command):
         add_fireteam_finder_arguments(parser)
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        clan_events.recent_clan_events(args.clan_id,
-                                       get_data_retriever(DataRetrieverType(args.backend), config),
-                                       recency_days=args.past_days,
-                                       min_clan_fireteam_members=args.min_clanmates)
+        asyncio.run(
+            clan_events.recent_clan_events(
+                args.clan_id,
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                recency_days=args.past_days,
+                min_clan_fireteam_members=args.min_clanmates))
 
 
 @final
@@ -81,10 +88,12 @@ class RaidSummaryCommand(Command):
                                 help="Display the table interactively")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        asyncio.run(raid_report.clears(args.clan_id,
-                                       get_data_retriever(DataRetrieverType(args.backend), config),
-                                       args.sort_by,
-                                       args.interactive))
+        asyncio.run(
+            raid_report.clears(
+                args.clan_id,
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                args.sort_by,
+                args.interactive))
 
 
 @final
@@ -96,10 +105,12 @@ class ClanFireteamsCommand(Command):
         add_fireteam_finder_arguments(parser)
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
-        clan_fireteams.recent_clan_fireteams_summary(get_data_retriever(DataRetrieverType(args.backend), config),
-                                                     args.clan_id,
-                                                     recency_days=args.past_days,
-                                                     min_clan_fireteam_members=args.min_clanmates)
+        asyncio.run(
+            clan_fireteams.recent_clan_fireteams_summary(
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                args.clan_id,
+                recency_days=args.past_days,
+                min_clan_fireteam_members=args.min_clanmates))
 
 
 @final
@@ -112,7 +123,10 @@ class ClanSearchCommand(Command):
                                 help="string to query for")
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig):
-        clan_search(get_data_retriever(DataRetrieverType(args.backend), config), args.query)
+        asyncio.run(
+            clan_search(
+                get_data_retriever(DataRetrieverType(args.backend), config),
+                args.query))
 
 
 @final

@@ -32,13 +32,13 @@ EDITING = "editing"
 log = logging.getLogger(__name__)
 
 
-def interactive_clan_list(clan_id: int, data_retriever: DataRetriever):
+async def interactive_clan_list(clan_id: int, data_retriever: DataRetriever):
     log.info("Interactive clan list")
     log.info(__name__)
-    clan = asyncio.run(_fetch_clan_data(data_retriever, clan_id))
+    clan = await _fetch_clan_data(data_retriever, clan_id)
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 
-    InteractiveClanList(clan_database, clan).run(loop=asyncio.new_event_loop())
+    _ = await InteractiveClanList(clan_database, clan).run_async()
 
 
 _T = TypeVar("_T")
