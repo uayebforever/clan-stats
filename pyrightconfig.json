@@ -9,5 +9,8 @@
   ],
   "reportAttributeAccessIssue": "none",
   "reportUnusedParameter": "none",
-  "reportDeprecated": "none"
+  "reportDeprecated": "none",
+  "reportExplicitAny": "none",
+  "reportImplicitOverride": "none",
+  "reportPrivateLocalImportUsage": "none"
 }

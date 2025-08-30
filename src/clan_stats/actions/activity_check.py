@@ -2,9 +2,9 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Tuple, Mapping, Sequence, Optional
 
-from aiobungie import GameMode
 from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member
 from clan_stats.clan_manager.membership_database import MembershipDatabase
+from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
