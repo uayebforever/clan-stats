@@ -3,13 +3,13 @@ from datetime import timedelta
 import pytest
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType
-from clan_stats.data.retrieval.aiobungie_rest_data_retriever import AioBungieRestDataRetriever
+from clan_stats.data.retrieval.bungio_data_retriever import BungioDataRetriever
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.util.itertools import first
 
 
 @pytest.fixture(params=[
-    AioBungieRestDataRetriever
+    BungioDataRetriever
 ])
 def retriever(request, bungie_api_key) -> DataRetriever:
     return request.param(api_key=bungie_api_key)
