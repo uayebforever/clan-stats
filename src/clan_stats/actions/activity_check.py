@@ -2,9 +2,9 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Tuple, Mapping, Sequence, Optional
 
-from aiobungie import GameMode
 from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member
 from clan_stats.clan_manager.membership_database import MembershipDatabase
+from clan_stats.data._bungie_api.bungie_enums import GameMode
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
@@ -16,11 +16,11 @@ from clan_stats.util.optional import require_else, require
 from clan_stats.util.set_helpers import find_differences
 
 
-def activity_summary(clan_id: int,
+async def activity_summary(clan_id: int,
                      data_retriever: DataRetriever,
                      sort_by: str = "name",
                      activity_mode: GameMode = GameMode.NONE):
-    clan, last_active = asyncio.run(_fetch_clan_data(data_retriever, clan_id, activity_mode))
+    clan, last_active = await _fetch_clan_data(data_retriever, clan_id, activity_mode)
 
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 

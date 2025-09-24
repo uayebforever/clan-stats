@@ -17,14 +17,14 @@ from clan_stats.util.time import format_time_weekday_and_time
 log = getLogger(__name__)
 
 
-def recent_clan_fireteams_summary(data_retriever: DataRetriever,
+async def recent_clan_fireteams_summary(data_retriever: DataRetriever,
                                   clan_id: int,
                                   recency_days: int = 30,
                                   min_clan_fireteam_members=2):
     recency_limit = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
     clan, players_in_range, shared_fireteams, last_active, manifest \
-        = asyncio.run(_get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members))
+        = await _get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members)
 
     term.print(MessageType.SECTION, f"Clan Fireteam report for {clan.name}")
 
