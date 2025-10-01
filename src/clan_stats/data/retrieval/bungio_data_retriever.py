@@ -21,7 +21,7 @@ from clan_stats.data._bungie_api.bungie_type_adapters import player_from_group_m
 from clan_stats.data._bungie_api.bungie_types import GroupResponse, SearchResultOfGroupMember, DestinyProfileResponse, \
     UserMembershipData, GetGroupsForMemberResponse, DestinyActivityHistoryResults, DestinyHistoricalStatsPeriodGroup, \
     DestinyPostGameCarnageReportData, DestinyManifest, GroupSearchResponse
-from clan_stats.data._bungie_api.typed_wrapper import find_clan_group
+from clan_stats.data._bungie_api.bungie_utils import find_clan_group
 from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity, ActivityWithPost
