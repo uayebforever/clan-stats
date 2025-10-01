@@ -5,6 +5,7 @@ from typing import Tuple, Mapping, Sequence, Optional
 from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member
 from clan_stats.clan_manager.membership_database import MembershipDatabase
 from clan_stats.data._bungie_api.bungie_enums import GameMode
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
 from clan_stats.data.types.clan import Clan
@@ -16,11 +17,17 @@ from clan_stats.util.optional import require_else, require
 from clan_stats.util.set_helpers import find_differences
 
 
-async def activity_summary(clan_id: int,
+async def activity_summary(clan: int | str,
                      data_retriever: DataRetriever,
                      sort_by: str = "name",
                      activity_mode: GameMode = GameMode.NONE):
-    clan, last_active = await _fetch_clan_data(data_retriever, clan_id, activity_mode)
+
+    clan_id = await resolve_clan(clan, data_retriever)
+
+    async with data_retriever:
+        clan = await data_retriever.get_clan(clan_id)
+        last_active = await get_most_recent_activity(
+            data_retriever, clan.players, mode=activity_mode)
 
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 
@@ -93,14 +100,6 @@ async def _get_most_recently_active(player_activities: Mapping[str, Optional[Seq
         else:
             result[name] = max(a.time_period.start for a in activities)
     return result
-
-
-async def _fetch_clan_data(data_retriever: DataRetriever, clan_id: int, mode: GameMode = GameMode.NONE
-                           ) -> Tuple[Clan, Mapping[str, Optional[datetime]]]:
-    async with data_retriever:
-        clan = await data_retriever.get_clan(clan_id)
-        last_active = await get_most_recent_activity(data_retriever, clan.players, mode=mode)
-    return clan, last_active
 
 
 async def get_most_recent_activity(data_retriever: DataRetriever,

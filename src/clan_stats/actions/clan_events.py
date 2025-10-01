@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import timedelta, datetime, timezone
 from typing import Sequence, Dict, List, Tuple
 
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.event.event_finder import find_events, Event
@@ -13,11 +14,14 @@ from clan_stats.data.types.individuals import Player, MinimalPlayer
 from clan_stats.util.time import format_time_period_weekday_and_time, TimePeriod
 
 
-async def recent_clan_events(clan_id: int,
+async def recent_clan_events(clan: int|str,
                        data_retriever: DataRetriever,
                        recency_days: int = 30,
                        min_clan_fireteam_members: int = 3,
                        min_event_length: timedelta = timedelta(minutes=45)) -> None:
+
+    clan_id = await resolve_clan(clan, data_retriever)
+
     recency_limit = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
     shared_fireteams, players_in_range, manifest = await _get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members)

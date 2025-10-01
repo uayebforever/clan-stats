@@ -11,6 +11,8 @@ from textual.coordinate import Coordinate
 from textual.widgets import Header, DataTable, Footer
 
 from aiobungie import GameMode
+
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity
@@ -20,7 +22,12 @@ from clan_stats.terminal import term
 from clan_stats.util.async_utils import collect_map
 
 
-async def clears(clan_id: int, data_retriever: DataRetriever, sort_by: str = "name", interactive=False):
+async def clears(clan_id: int|str,
+                 data_retriever: DataRetriever,
+                 sort_by: str = "name",
+                 interactive=False):
+
+    clan_id = await resolve_clan(clan_id, data_retriever)
 
     clan, raid_data, manifest = await _fetch_clan_raid_data(data_retriever, clan_id)
 

@@ -21,6 +21,7 @@ from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member,
 from clan_stats.clan_manager.clan_membership_database import find_unknown_players
 from clan_stats.clan_manager.membership_database import MembershipDatabase
 from clan_stats.data._bungie_api.bungie_enums import GameMode
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import GroupMinimalPlayer
@@ -32,10 +33,10 @@ EDITING = "editing"
 log = logging.getLogger(__name__)
 
 
-async def interactive_clan_list(clan_id: int, data_retriever: DataRetriever):
+async def interactive_clan_list(clan_id: int | str, data_retriever: DataRetriever):
     log.info("Interactive clan list")
     log.info(__name__)
-    clan = await _fetch_clan_data(data_retriever, clan_id)
+    clan = await _fetch_clan_data(data_retriever, await resolve_clan(clan_id, data_retriever))
     clan_database = ClanMembershipDatabase(MembershipDatabase(ClanMembershipDatabase.path(clan_id)))
 
     _ = await InteractiveClanList(clan_database, clan).run_async()
