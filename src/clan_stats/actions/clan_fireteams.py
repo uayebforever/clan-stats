@@ -4,6 +4,7 @@ from logging import getLogger
 from typing import Sequence, Set, Tuple, Optional, Mapping
 
 from clan_stats.actions.activity_check import get_most_recent_activity
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.clan import Clan
@@ -17,10 +18,12 @@ from clan_stats.util.time import format_time_weekday_and_time
 log = getLogger(__name__)
 
 
-async def recent_clan_fireteams_summary(data_retriever: DataRetriever,
-                                  clan_id: int,
-                                  recency_days: int = 30,
-                                  min_clan_fireteam_members=2):
+async def recent_clan_fireteams_summary(
+        data_retriever: DataRetriever,
+        clan_id: int | str,
+        recency_days: int = 30,
+        min_clan_fireteam_members=2):
+    clan_id = await resolve_clan(clan_id, data_retriever)
     recency_limit = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
     clan, players_in_range, shared_fireteams, last_active, manifest \
@@ -48,8 +51,10 @@ async def recent_clan_fireteams_summary(data_retriever: DataRetriever,
     term.print(MessageType.SECTION, f"{len(fireteam_participants)} members participated in clan fireteams:")
     term.print_columnar_list(fireteam_participants)
 
-    non_fireteam_participants = {p.name for p in clan.players}.difference(fireteam_participants).intersection(p.name for p in players_in_range)
-    term.print(MessageType.SECTION, f"{len(non_fireteam_participants)} Clan members who have not joined a clan fireteam but were active")
+    non_fireteam_participants = {p.name for p in clan.players}.difference(fireteam_participants).intersection(
+        p.name for p in players_in_range)
+    term.print(MessageType.SECTION,
+               f"{len(non_fireteam_participants)} Clan members who have not joined a clan fireteam but were active")
     term.print_columnar_list(
         non_fireteam_participants)
 
