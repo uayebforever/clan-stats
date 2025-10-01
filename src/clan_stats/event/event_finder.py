@@ -4,6 +4,7 @@ from typing import Sequence, List, Iterable, Set, Iterator
 
 from clan_stats.data.types.activities import Activity
 from clan_stats.fireteams import Fireteam
+from clan_stats.util.itertools import is_empty
 from clan_stats.util.time import TP_1h
 
 
@@ -52,6 +53,9 @@ def find_events(fireteams: Iterable[Fireteam],
                 max_gap: timedelta = TP_1h,
                 min_length: timedelta = timedelta(minutes=45)) -> Sequence[Event]:
     sorted_fireteams = list(sorted(fireteams, key=lambda f: f.activity_start()))
+
+    if is_empty(sorted_fireteams):
+        return []
 
     prev_fireteam = sorted_fireteams[0]
 
