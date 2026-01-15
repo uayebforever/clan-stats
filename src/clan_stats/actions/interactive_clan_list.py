@@ -1,9 +1,8 @@
-import asyncio
 import itertools
 import logging
 from contextlib import contextmanager
 from datetime import date
-from typing import Tuple, Callable, Optional, Dict, Sequence, ClassVar, TypeVar, Generic, ParamSpec, Iterator
+from typing import Tuple, Callable, Optional, Dict, Sequence, ClassVar, TypeVar, Generic, Iterator
 
 from pydantic import BaseModel
 from textual import events
@@ -14,15 +13,15 @@ from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen, ModalScreen
 from textual.validation import Length
-from textual.widgets import DataTable, Header, Footer, Label, Input, TextArea, Pretty
+from textual.widgets import DataTable, Header, Footer, Label, Input, TextArea
 from textual.widgets._data_table import ColumnKey
 
 from clan_stats.clan_manager import ClanMembershipDatabase, AccountType, Member, Account, MembershipStatus
 from clan_stats.clan_manager.clan_membership_database import find_unknown_players
 from clan_stats.clan_manager.membership_database import MembershipDatabase
 from clan_stats.data._bungie_api.bungie_enums import GameMode
-from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.retrieval.data_retriever import DataRetriever
+from clan_stats.data.retrieval.retrieval_utils import resolve_clan
 from clan_stats.data.types.clan import Clan
 from clan_stats.data.types.individuals import GroupMinimalPlayer
 from clan_stats.util.itertools import only, first
@@ -546,28 +545,30 @@ class InteractiveClanList(App):
         return label
 
     def compose(self) -> ComposeResult:
-        yield Header()
-        with Grid(id="list"):
-            with Vertical(classes="area"):
-                yield self._add_label("unknown", "Unknown Players from Bungie Clan")
-                self._unknown_table = UnknownPlayersTable(self._clan_database, name="unknown_players")
-                yield self._unknown_table
-            with Vertical(classes="area"):
-                yield self._add_label("current", "Current Members")
-                self._members_table = MembersTable(membership_database=self._clan_database, name="current_members")
-                yield self._members_table
-            with Vertical(classes="area"):
-                yield self._add_label("past", "Past Members")
-                self._past_members_table = PastMembersTable(membership_database=self._clan_database,
-                                                            name="past_members")
-                yield self._past_members_table
-        yield Footer()
+        with Vertical(classes="outer"):
+            yield Header()
+            with Vertical():
+                with Vertical(classes="small area"):
+                    yield self._add_label("unknown", "Unknown Players from Bungie Clan")
+                    self._unknown_table = UnknownPlayersTable(self._clan_database, name="unknown_players")
+                    yield self._unknown_table
+                with Vertical(classes="large area"):
+                    yield self._add_label("current", "Current Members")
+                    self._members_table = MembersTable(membership_database=self._clan_database, name="current_members")
+                    yield self._members_table
+                with Vertical(classes="area small"):
+                    yield self._add_label("past", "Past Members")
+                    self._past_members_table = PastMembersTable(membership_database=self._clan_database,
+                                                                name="past_members")
+                    yield self._past_members_table
+            yield Footer()
 
     def on_mount(self) -> None:
         log.info("Updating tables")
         self._update_all()
 
     def _update_all(self):
+
         self._unknown_table.update(unknown_players := find_unknown_players(self._clan_database, self._clan))
         self._labels["unknown"].update(f"Unknown Players from Bungie Clan ({len(unknown_players)})")
 
@@ -576,7 +577,6 @@ class InteractiveClanList(App):
 
         self._past_members_table.update(past := list(self._clan_database.past_members()))
         self._labels["past"].update(f"Past Members ({len(past)})")
-
 
 def truncate_str(text: str, length: int) -> str:
     if len(text) > length:
