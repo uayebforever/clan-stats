@@ -104,6 +104,7 @@ class ClanFireteamsCommand(Command):
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
         add_fireteam_finder_arguments(parser)
+        parser.add_argument("--short", action='store_true')
 
     def execute(self, args: argparse.Namespace, config: ClanStatsConfig) -> None:
         asyncio.run(
@@ -111,7 +112,8 @@ class ClanFireteamsCommand(Command):
                 get_data_retriever(DataRetrieverType(args.backend), config),
                 require_else(args.clan, args.clan_id),
                 recency_days=args.past_days,
-                min_clan_fireteam_members=args.min_clanmates))
+                min_clan_fireteam_members=args.min_clanmates,
+                short_summary=args.short))
 
 
 @final

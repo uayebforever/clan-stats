@@ -9,6 +9,7 @@ Input:blur, DataTable:blur, TextArea:blur {
 
 DataTable {
     max-width: 100%;
+    max-height: 99%;
 }
 
 ModalScreen {
@@ -29,9 +30,17 @@ Grid#hist_n_accounts {
     grid-columns: auto 1fr;
 }
 
-Grid#list {
-    grid-size: 1;
-    grid-rows: auto;
+Vertical.outer {
+    height: 100vh;
+    max-height: 100vh;
+}
+
+Vertical.small {
+    max-height: 20vh;
+}
+
+Vertical.large {
+    height: 1fr;
 }
 
 .hidden {

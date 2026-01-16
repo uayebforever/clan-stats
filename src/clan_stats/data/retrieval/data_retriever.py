@@ -7,7 +7,7 @@ from .._bungie_api.bungie_enums import GameMode
 from ..manifest import Manifest
 from ..types.activities import ActivityWithPost, Activity
 from ..types.clan import Clan, MinimalClan
-from ..types.individuals import Player, Character, MinimalPlayer
+from ..types.individuals import Player, Character, MinimalPlayer, ClanMembership
 
 
 class DataRetriever(AsyncContextManager, abc.ABC):
@@ -33,6 +33,10 @@ class DataRetriever(AsyncContextManager, abc.ABC):
 
     @abc.abstractmethod
     async def get_clan_for_player(self, player: Player) -> Optional[Clan]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    async def get_clan_membership_for_player(self, player: Player) -> Optional[ClanMembership]:
         raise NotImplementedError()
 
     @abc.abstractmethod

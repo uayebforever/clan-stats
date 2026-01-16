@@ -149,16 +149,16 @@ wheels = [
 
 [[package]]
 name = "bungio"
-version = "1.4.0"
+version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "attrs" },
     { name = "sqlalchemy", extra = ["aiosqlite"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/0b/84592b186b35ca9d4771ddcf162c9564a5b1febbfd221a23f551bc9d8169/bungio-1.4.0.tar.gz", hash = "sha256:7a84cef57856bd66b8aa6d5244a774921f9b63615c09c3b60bf7504a84505528", size = 301519, upload_time = "2025-05-10T16:45:17.957Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/90/3aff7137d60aadfba47d819a9742e959829f0540b9705e9d0019b7d286ba/bungio-1.7.0.tar.gz", hash = "sha256:f3c48cf5f366b4b7f5756231bec1d533709990be26b34fc47d351b5491900698", size = 305554, upload_time = "2025-12-08T21:37:21.686Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/46/fecf5b98447853e989c7f666e12660b1ca04226ddc16301e48c4c5525b5d/bungio-1.4.0-py3-none-any.whl", hash = "sha256:5337dc6400c184920b51f7a72f69144adc65b685d241715f08b22fefe0333d84", size = 406093, upload_time = "2025-05-10T16:45:16.3Z" },
+    { url = "https://files.pythonhosted.org/packages/55/62/4d883e1deab1e095502662bc7017a3fe94c728880c513c30eb41ef58572d/bungio-1.7.0-py3-none-any.whl", hash = "sha256:f4270f01530511aff14d5980f9d47e7a2867a4a62bc0a6588230864d24c9cd34", size = 412318, upload_time = "2025-12-08T21:37:19.637Z" },
 ]
 
 [[package]]
@@ -221,12 +221,12 @@ requires-dist = [
     { name = "aiobungie" },
     { name = "aiohttp" },
     { name = "blessed" },
-    { name = "bungio" },
+    { name = "bungio", specifier = ">=1.7.0" },
     { name = "pydantic" },
     { name = "pydantic-yaml" },
     { name = "sqlalchemy", specifier = "~=1.4" },
     { name = "tabulate" },
-    { name = "textual" },
+    { name = "textual", specifier = ">=7.2.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -458,9 +458,6 @@ wheels = [
 [package.optional-dependencies]
 linkify = [
     { name = "linkify-it-py" },
-]
-plugins = [
-    { name = "mdit-py-plugins" },
 ]
 
 [[package]]
@@ -800,11 +797,11 @@ wheels = [
 
 [[package]]
 name = "pygments"
-version = "2.19.1"
+version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7c/2d/c3338d48ea6cc0feb8446d8e6937e1408088a72a39937982cc6111d17f84/pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f", size = 4968581, upload_time = "2025-01-06T17:26:30.443Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload_time = "2025-06-21T13:39:12.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293, upload_time = "2025-01-06T17:26:25.553Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload_time = "2025-06-21T13:39:07.939Z" },
 ]
 
 [[package]]
@@ -882,15 +879,15 @@ wheels = [
 
 [[package]]
 name = "rich"
-version = "14.0.0"
+version = "14.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/53/830aa4c3066a8ab0ae9a9955976fb770fe9c6102117c8ec4ab3ea62d89e8/rich-14.0.0.tar.gz", hash = "sha256:82f1bc23a6a21ebca4ae0c45af9bdbc492ed20231dcb63f297d6d1021a9d5725", size = 224078, upload_time = "2025-03-30T14:15:14.23Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/d2/8920e102050a0de7bfabeb4c4614a49248cf8d5d7a8d01885fbb24dc767a/rich-14.2.0.tar.gz", hash = "sha256:73ff50c7c0c1c77c8243079283f4edb376f0f6442433aecb8ce7e6d0b92d1fe4", size = 219990, upload_time = "2025-10-09T14:16:53.064Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/9b/63f4c7ebc259242c89b3acafdb37b41d1185c07ff0011164674e9076b491/rich-14.0.0-py3-none-any.whl", hash = "sha256:1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0", size = 243229, upload_time = "2025-03-30T14:15:12.283Z" },
+    { url = "https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl", hash = "sha256:76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd", size = 243393, upload_time = "2025-10-09T14:16:51.245Z" },
 ]
 
 [[package]]
@@ -988,17 +985,19 @@ wheels = [
 
 [[package]]
 name = "textual"
-version = "3.3.0"
+version = "7.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markdown-it-py", extra = ["linkify", "plugins"] },
+    { name = "markdown-it-py", extra = ["linkify"] },
+    { name = "mdit-py-plugins" },
     { name = "platformdirs" },
+    { name = "pygments" },
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/96/02751746cf6950e9e8968186cb42eed1e52d91e2c80cc52bb19589e25900/textual-3.3.0.tar.gz", hash = "sha256:aa162b92dde93c5231e3689cdf26b141e86a77ac0a5ba96069bc9547e44119ae", size = 1618996, upload_time = "2025-06-01T14:01:40.336Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/4b/24ae02d857ec0fa6661d27a989994e65c6a3b3d56c7177b2d8e022d29ccc/textual-7.2.0.tar.gz", hash = "sha256:5355f2dc16fbdc452a714dee2e440125e33b82373b3032cb53bea96e7019fa0b", size = 1582530, upload_time = "2026-01-11T17:40:50.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/c2/c8be0b51bfce3278e057e1563a477bf128097bf5ce82ab21b0bbbcb30986/textual-3.3.0-py3-none-any.whl", hash = "sha256:463809791fd2c979c91ff0b54e25f2e57874828815e51a6503f32cb2e21e4eb0", size = 687997, upload_time = "2025-06-01T14:01:37.654Z" },
+    { url = "https://files.pythonhosted.org/packages/48/b8/cc8ed2548ff1bf0fd719dd399bb56869d82a57143c2772cfd57f68efc1d3/textual-7.2.0-py3-none-any.whl", hash = "sha256:2624077f02dbd504beea9a24a943770f954f500a5f29a0bfa83465c52fa3ea1c", size = 715809, upload_time = "2026-01-11T17:40:48.679Z" },
 ]
 
 [[package]]

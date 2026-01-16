@@ -22,46 +22,52 @@ async def recent_clan_fireteams_summary(
         data_retriever: DataRetriever,
         clan_id: int | str,
         recency_days: int = 30,
-        min_clan_fireteam_members=2):
+        min_clan_fireteam_members=2,
+        short_summary: bool = False):
     clan_id = await resolve_clan(clan_id, data_retriever)
     recency_limit = datetime.now(timezone.utc) - timedelta(days=recency_days)
 
     clan, players_in_range, shared_fireteams, last_active, manifest \
         = await _get_data(data_retriever, clan_id, recency_limit, min_clan_fireteam_members)
 
-    term.print(MessageType.SECTION, f"Clan Fireteam report for {clan.name}")
+    term.print(MessageType.SECTION,
+               f"Clan Fireteam report for {clan.name} ({clan.id})\n" +
+               f"   {recency_limit.date().isoformat()} -- {datetime.now().date().isoformat()}")
 
-    term.print(MessageType.SECTION, "Bungie Clan Members active in the time range:")
-    for player in sorted(players_in_range):
-        term.print_player_line(player, last_active=last_active[player.name])
+    if not short_summary:
+        term.print(MessageType.SECTION, "Bungie Clan Members active in the time range:")
+        for player in sorted(players_in_range):
+            term.print_player_line(player, last_active=last_active[player.name])
 
     term.print(MessageType.TEXT, f"\n\nThere were {len(shared_fireteams)} found:")
 
-    for fireteam in sorted(shared_fireteams, key=lambda f: f.activity.time_period.start):
-        log.info(fireteam)
-        term._print("{activity_name:40s} {time:25s}   {team}".format(
-            activity_name=manifest.get_activity_name(fireteam.activity.director_activity_hash),
-            time=format_time_weekday_and_time(fireteam.activity.time_period.start),
-            team=", ".join(fireteam.member_names)))
+    if not short_summary:
+        for fireteam in sorted(shared_fireteams, key=lambda f: f.activity.time_period.start):
+            log.info(fireteam)
+            term._print("{activity_name:40s} {time:25s}   {team}".format(
+                activity_name=manifest.get_activity_name(fireteam.activity.director_activity_hash),
+                time=format_time_weekday_and_time(fireteam.activity.time_period.start),
+                team=", ".join(fireteam.member_names)))
 
     fireteam_participants: Set[str] = set()
     for fireteam in shared_fireteams:
         fireteam_participants.update(fireteam.member_names)
 
     term.print(MessageType.SECTION, f"{len(fireteam_participants)} members participated in clan fireteams:")
-    term.print_columnar_list(fireteam_participants)
+    if not short_summary:
+        term.print_columnar_list(fireteam_participants)
 
     non_fireteam_participants = {p.name for p in clan.players}.difference(fireteam_participants).intersection(
         p.name for p in players_in_range)
     term.print(MessageType.SECTION,
                f"{len(non_fireteam_participants)} Clan members who have not joined a clan fireteam but were active")
-    term.print_columnar_list(
-        non_fireteam_participants)
+    if not short_summary:
+        term.print_columnar_list(non_fireteam_participants)
 
     inactive = {p.name for p in clan.players}.difference(p.name for p in players_in_range)
     term.print(MessageType.SECTION, f"{len(inactive)} Clan members who weren't active")
-    term.print_columnar_list(
-        inactive)
+    if not short_summary:
+        term.print_columnar_list(inactive)
 
 
 async def _get_data(
