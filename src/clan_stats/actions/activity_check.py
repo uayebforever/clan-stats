@@ -62,7 +62,16 @@ async def activity_summary(clan: int | str,
         term.skip()
         term.warning("Members not in bungie clan:")
         for member in sorted(missing, key=lambda m: require(m.bungie_name())):
-            term.print(MessageType.TEXT, f"   {member.bungie_name()} / @{member.discord_name()}")
+            player = await data_retriever.get_player(member.bungie_id())
+            clan_membership = await data_retriever.get_clan_membership_for_player(player)
+            if clan_membership is not None:
+                join_date = clan_membership.join_date.strftime("%-d %B %Y")
+                term.print(MessageType.TEXT,
+                           f"   {member.bungie_name()} / @{member.discord_name()} "
+                           + f"(joined {clan_membership.clan_name} on {join_date})")
+            else:
+                term.print(MessageType.TEXT,
+                           f"   {member.bungie_name()} / @{member.discord_name()} ")
 
     term.print(MessageType.TEXT, f"\nPlayers in bungie clan not found in current memberships: ({len(new_unknown)})")
     for player in sorted(new_unknown, key=lambda x: x.primary_membership.membership_id):

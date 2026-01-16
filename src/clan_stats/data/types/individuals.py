@@ -13,6 +13,12 @@ class Membership(BaseModel):
     membership_type: MembershipType
 
 
+class ClanMembership(BaseModel):
+    clan_name: str
+    clan_id: int
+    join_date: datetime
+
+
 class CrossSaveStatus(StrEnum):
     PRIMARY = auto()
     OVERRIDDEN = auto()
@@ -23,6 +29,7 @@ class CrossSaveStatus(StrEnum):
         if self is self.OVERRIDDEN: return "O"
         if self is self.NONE: return "N"
         raise TypeError(f"Unknown CrossSaveStatus {self}")
+
 
 class DetailedMembership(Membership):
     platform_display_name: str

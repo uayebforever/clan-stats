@@ -26,7 +26,7 @@ from clan_stats.data.manifest import Manifest, SqliteManifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import Activity, ActivityWithPost
 from clan_stats.data.types.clan import Clan, MinimalClan
-from clan_stats.data.types.individuals import Player, MinimalPlayer, Character, Membership
+from clan_stats.data.types.individuals import Player, MinimalPlayer, Character, Membership, ClanMembership
 from clan_stats.util.async_utils import retrieve_paged
 from clan_stats.util.itertools import flatten, only
 from clan_stats.util.stopwatch import Stopwatch
@@ -82,6 +82,14 @@ class BungioDataRetriever(DataRetriever):
             characters=flatten(await asyncio.gather(*[self.get_characters_for_player(p) for p in players])))
 
     async def get_clan_for_player(self, player: Player) -> Optional[Clan]:
+        clan_membership = await self.get_clan_membership_for_player(player)
+
+        if clan_membership is None:
+            return None
+
+        return await self.get_clan(clan_membership.clan_id)
+
+    async def get_clan_membership_for_player(self, player: Player) -> Optional[ClanMembership]:
         groups = GetGroupsForMemberResponse.model_validate(
             await self._client.api.get_groups_for_member(
                 filter=GroupsForMemberFilter.ALL,
@@ -94,7 +102,11 @@ class BungioDataRetriever(DataRetriever):
         if clan_group is None:
             return None
 
-        return await self.get_clan(clan_group.group.groupId)
+        return ClanMembership(
+            clan_name=clan_group.group.name,
+            clan_id=clan_group.group.groupId,
+            join_date=clan_group.member.joinDate
+        )
 
     async def get_activities_for_player(self, player: MinimalPlayer, min_start_date: Optional[datetime] = None,
                                         mode: GameMode = GameMode.NONE) -> Sequence[Activity]:
