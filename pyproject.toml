@@ -14,9 +14,9 @@ dependencies = [
     "aiobungie",
     "aiohttp",
     "blessed",
-    "bungio",
+    "bungio>=1.7.0",
     "tabulate",
-    "textual",
+    "textual>=7.2.0",
     "sqlalchemy~=1.4",
 ]
 
