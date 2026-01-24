@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Union, Sequence, Optional
 
 from bungio import Client
+from bungio.error import BungieException
 from bungio.models import DestinyComponentType, BungieMembershipType, \
     GroupsForMemberFilter, GroupType
 from bungio.models import GroupQuery
@@ -53,10 +54,15 @@ class BungioDataRetriever(DataRetriever):
                 raw_data))
 
     async def get_characters_for_player(self, minimal_player: MinimalPlayer) -> Sequence[Character]:
-        characters = DestinyProfileResponse.model_validate(await self._client.api.get_profile(
-            minimal_player.primary_membership.membership_id,
-            minimal_player.primary_membership.membership_type,
-            components=[DestinyComponentType.CHARACTERS]))
+        try:
+            profile = await self._client.api.get_profile(minimal_player.primary_membership.membership_id,
+                                                             minimal_player.primary_membership.membership_type,
+                                                             components=[DestinyComponentType.CHARACTERS])
+        except BungieException:
+            logger.exception(f"Unable to retriever characters for player {minimal_player}")
+            return []
+
+        characters = DestinyProfileResponse.model_validate(profile)
         return [
             Character(
                 membership=Membership(membership_id=character.membershipId,
@@ -69,7 +75,9 @@ class BungioDataRetriever(DataRetriever):
 
     async def get_clan(self, clan_id: int) -> Clan:
         logging.info("Getting clan %s", clan_id)
-        clan_group = GroupResponse.model_validate(await self._client.api.get_group(clan_id))
+        clan_json = await self._client.api.get_group(clan_id)
+        logger.debug(f"Clan response: {clan_json.founder.to_dict()}")
+        clan_group = GroupResponse.model_validate(clan_json)
         members = SearchResultOfGroupMember.model_validate(
             await self._client.api.get_members_of_group(group_id=clan_id, currentpage=1))
 

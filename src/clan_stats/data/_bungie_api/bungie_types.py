@@ -78,8 +78,8 @@ class GroupUserInfoCard(BungieTypeBase):
     membershipType: MembershipType
     LastSeenDisplayName: str
     LastSeenDisplayNameType: MembershipType
-    bungieGlobalDisplayName: Optional[str]
-    bungieGlobalDisplayNameCode: Optional[int]
+    bungieGlobalDisplayName: Optional[str] = Field(default=None)
+    bungieGlobalDisplayNameCode: Optional[int] = Field(default=None)
     displayName: str
     applicableMembershipTypes: Sequence[MembershipType]
 

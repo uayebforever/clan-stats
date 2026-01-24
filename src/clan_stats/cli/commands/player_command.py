@@ -35,7 +35,7 @@ class FindPlayerCommand(Command):
 
     def execute(self, args, config: ClanStatsConfig) -> None:
         asyncio.run(
-            player_search.trials_report_player_search(
+            search.trials_report_player_search(
                 get_data_retriever(DataRetrieverType(args.backend), config),
                 args.identifier))
 
