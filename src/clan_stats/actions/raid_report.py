@@ -70,13 +70,12 @@ class Raid(StrEnum):
     PAN = "Pantheon"
     COS = "Crown of Sorrow"
     SOTP = "Scourge of the Past"
-    DPS = "The Desert Perpetual: Standard"
-    DPC = "The Desert Perpetual: Contest"
+    DP = "The Desert Perpetual"
     UNKNOWN = "Unknown?"
 
     @classmethod
     def current_raids(cls) -> Sequence['Raid']:
-        return [cls.DPS, cls.SE, cls.CROTA, cls.ROOT, cls.KF, cls.VOW, cls.VOG, cls.DSC, cls.GOS, cls.LW]
+        return [cls.DP, cls.SE, cls.CROTA, cls.ROOT, cls.KF, cls.VOW, cls.VOG, cls.DSC, cls.GOS, cls.LW]
 
     @classmethod
     def from_director_activity_hash(cls, dah: int, manifest: Manifest) -> 'Raid':

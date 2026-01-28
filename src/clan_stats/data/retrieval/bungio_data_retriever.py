@@ -208,7 +208,14 @@ class BungioDataRetriever(DataRetriever):
                 ))
             return response.activities
 
-        return await retrieve_paged(_get_page, enough=activity_history_to(min_start_date))
+        try:
+            return await retrieve_paged(_get_page, enough=activity_history_to(min_start_date))
+        except BungieException as bungie_error:
+            logger.warning("Bungie exception: %s", bungie_error)
+            if bungie_error.error == "DestinyPrivacyRestriction":
+                return []
+            else:
+                raise
 
     def _remove_old_manifests(self, manifest_dir: Path, target_base: str,  target_extension: str) -> None:
         for path in manifest_dir.glob(f"{target_base}_*.{target_extension}"):

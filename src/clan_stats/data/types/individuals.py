@@ -47,7 +47,7 @@ class MinimalPlayer(BaseModel):
 
     def __lt__(self, other):
         if isinstance(other, MinimalPlayer):
-            return self.name < other.name
+            return self.name.lower() < other.name.lower()
         else:
             return False
 

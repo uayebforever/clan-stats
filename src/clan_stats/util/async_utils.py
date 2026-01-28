@@ -28,6 +28,19 @@ async def collect_map(coroutine_map: Mapping[str, Coroutine[Any, Any, T]]) -> Ma
 
     return results
 
+async def collect_map_with_exceptions(coroutine_map: Mapping[str, Coroutine[Any, Any, T]]
+                                      ) -> Mapping[str, T | Exception]:
+    tasks = []
+    async with asyncio.TaskGroup() as tg:
+        for coroutine in coroutine_map.values():
+            tasks.append(tg.create_task(coroutine))
+
+    results = {}
+    for key, task in zip(coroutine_map.keys(), tasks):
+        results[key] = task.result()
+
+    return results
+
 
 async def retrieve_paged(get_page: Callable[[int], Awaitable[Sequence[T]]],
                          enough: Optional[Callable[[Sequence[T]], bool]]
