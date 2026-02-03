@@ -1,0 +1,2 @@
+class SectionHead(str):
+    pass

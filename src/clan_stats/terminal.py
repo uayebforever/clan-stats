@@ -2,14 +2,17 @@ import os
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Dict, List, TypeVar, Sequence, Tuple, Iterable, Optional, Iterator
+from typing import Dict, List, TypeVar, Sequence, Tuple, Iterable, Optional, Iterator, final
 
 import blessed
 from tabulate import tabulate
 
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.types.activities import ActivityWithPost
-from clan_stats.data.types.individuals import Player, MinimalPlayer, GroupMinimalPlayer
+from clan_stats.data.types.individuals import MinimalPlayer, GroupMinimalPlayer
+from clan_stats.terminal_ui.terminal_formatter import TerminalFormatter
+from clan_stats.terminal_ui.text_formatting import SectionHead
+from clan_stats.terminal_ui.token_formatter import format_token
 from clan_stats.util.optional import require_else
 from clan_stats.util.time import format_time_as_delta, format_time_delta
 
@@ -27,10 +30,11 @@ class MessageType(Enum):
     TEXT = auto()
     ERROR = auto()
 
-
+@final
 class _Terminal(object):
 
     def __init__(self):
+        self._terminal_formatter = TerminalFormatter(format_token)
         self._terminal: blessed.Terminal = blessed.Terminal(force_styling=True)
         self._blocked: bool = False
         self._buffer: Dict[MessageType, List[str]] = {i: [] for i in MessageType}
@@ -91,7 +95,7 @@ class _Terminal(object):
         if not self._blocked:
             if type == MessageType.SECTION:
                 self.skip(1)
-                self._print(self._terminal.white(message))
+                self._print(self._terminal_formatter.format_token(SectionHead(message)))
             elif type == MessageType.TEXT:
                 self._print(self._terminal.grey(message))
             elif type == MessageType.SUMMARY:
@@ -104,10 +108,10 @@ class _Terminal(object):
     def print_table(self, headings: Sequence[str], table: Sequence[Sequence[str]]):
         print(tabulate(table, headers=headings))
 
-    def print_columnar_list(self, str_list: Iterable[str]):
+    def print_columnar_list(self, str_list: Sequence[str]):
         if not self._blocked:
-            for line_batch in _batch(sorted(str_list, key=lambda s: s.lower()), 3, pad=""):
-                term.print(MessageType.TEXT, "   {:30s}   {:30s}  {:30s}".format(*line_batch))
+            for line in self._terminal_formatter.format_list_in_columns(str_list):
+                self._print(line)
 
     def _print(self, message: str) -> None:
         print(self._terminal.truncate(message), flush=True)
@@ -147,20 +151,6 @@ class _Terminal(object):
             self.unblock()
             self.clear_bol()
             self.clear_buffer(MessageType.ERROR)
-
-
-T = TypeVar('T')
-
-
-def _batch(seq: Sequence[T], size: int, pad=None) -> Iterator[Tuple[T, T, T]]:
-    for i in range(-(-len(seq) // size)):
-        end = min(i * size + size, len(seq))
-        if pad is not None and i * size + size > len(seq):
-            extra = [pad] * (i * size + size - len(seq))
-        else:
-            extra = []
-
-        yield list(seq[i * size: end]) + extra
 
 
 term: _Terminal = _Terminal()
