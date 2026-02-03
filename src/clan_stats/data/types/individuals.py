@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import NamedTuple, Any, Optional, Dict, Mapping
+from typing import Any, Optional, Mapping
+
 from pydantic import BaseModel, Field
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, ClanMemberType
@@ -40,12 +41,12 @@ class MinimalPlayer(BaseModel):
     primary_membership: Membership
     name: str
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: Any) -> bool:  # pyright: ignore [reportAny]
         if not isinstance(other, MinimalPlayer):
             return False
         return self.primary_membership == other.primary_membership
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any):  # pyright: ignore [reportAny]
         if isinstance(other, MinimalPlayer):
             return self.name.lower() < other.name.lower()
         else:
@@ -78,7 +79,3 @@ class Character(BaseModel):
     character_type: CharacterType
     power_level: int
     player: MinimalPlayer
-
-
-def last_seen(player: Player):
-    return player.last_on_destiny

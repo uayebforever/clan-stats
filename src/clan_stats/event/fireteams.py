@@ -1,14 +1,14 @@
 import itertools
-from collections import defaultdict
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime
-from types import TracebackType
-from typing import Mapping, Sequence, Dict, Set, TypeVar, Iterator, Iterable, AsyncContextManager, Type
 from logging import getLogger
+from types import TracebackType
+from typing import Mapping, Sequence, Dict, Set, TypeVar, Iterable, Type
 
 from clan_stats.data.retrieval.data_retriever import DataRetriever
-from clan_stats.data.types.individuals import Player, MinimalPlayer
-from clan_stats.fireteams import Fireteam
 from clan_stats.data.types.activities import Activity
+from clan_stats.data.types.individuals import MinimalPlayer
+from clan_stats.fireteams import Fireteam
 from clan_stats.util import async_utils
 from clan_stats.util.itertools import first, rest
 from clan_stats.util.time import is_tz_aware, TimePeriod
@@ -16,19 +16,16 @@ from clan_stats.util.time import is_tz_aware, TimePeriod
 log = getLogger(__name__)
 
 
-class SharedFireteamFinder(AsyncContextManager):
+class SharedFireteamFinder(AbstractAsyncContextManager['SharedFireteamFinder']):
 
     def __init__(self, data_retriever: DataRetriever) -> None:
         self._data_retriever: DataRetriever = data_retriever
-
-    async def __aenter__(self):
-        return await self._data_retriever.__aenter__()
 
     async def __aexit__(self,
                         exception_type: Type[BaseException] | None,
                         exception: BaseException | None,
                         traceback: TracebackType | None) -> bool | None:
-        return await self._data_retriever.__aexit__()
+        return await self._data_retriever.__aexit__(exception_type, exception, traceback)
 
     async def shared_fireteams(self,
                                players: Iterable[MinimalPlayer],
@@ -72,12 +69,11 @@ def _combine_activities(activities: Sequence[Activity]) -> Activity:
 
     for activity in rest(activities):
         if (activity.instance_id != first_activity.instance_id
-            or activity.director_activity_hash != first_activity.director_activity_hash
-            or activity.primary_mode != first_activity.primary_mode
-            or activity.modes != first_activity.modes):
+                or activity.director_activity_hash != first_activity.director_activity_hash
+                or activity.primary_mode != first_activity.primary_mode
+                or activity.modes != first_activity.modes):
             raise ValueError("Cannot combine non-matching activities")
         time_period = time_period.combine(activity.time_period)
-
 
     return Activity(
         instance_id=first_activity.instance_id,
@@ -91,8 +87,8 @@ def _activities_by_instance_id(activities: Iterable[Activity]) -> Mapping[int, A
     def instance_id(a: Activity) -> int:
         return a.instance_id
 
-    return {key: _combine_activities(list(group)) for key, group in itertools.groupby(sorted(activities, key=instance_id), key=instance_id)}
-
+    return {key: _combine_activities(list(group)) for key, group in
+            itertools.groupby(sorted(activities, key=instance_id), key=instance_id)}
 
 
 def _find_fireteams(name_to_instance_ids: Mapping[str, Set[int]],
