@@ -1,0 +1,73 @@
+site_name: BungIO
+site_description: Documentation for BungIO, a python bungie.net api wrapper
+repo_url: https://github.com/Kigstn/BungIO
+repo_name: BungIO
+copyright: Copyright &copy; 2022 - Present Kigstn
+docs_dir: docs/src
+edit_uri: edit/master/docs/src
+
+
+
+theme:
+  name: material
+  logo: images/favicon.png
+  favicon: images/favicon.png
+  locale: en
+  features:
+    - navigation.instant
+    - navigation.indexes
+    - navigation.tracking
+    - navigation.top
+    - navigation.tabs
+    - search.suggest
+    - search.share
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+
+extra_css:
+  - css/extra.css
+
+plugins:
+  - search
+  - awesome-pages
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+          # see https://mkdocstrings.github.io/python/usage/ for options
+          options:
+            show_root_toc_entry: false
+            inherited_members: true
+            docstring_style: google
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.progressbar
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      linenums: true
+
+extra:
+  social:
+  - icon: fontawesome/brands/github
+    link: https://github.com/kigstn

@@ -1,0 +1,31 @@
+name: Ruff Linting
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+    paths:
+      - src/**/*.py
+      - tests/**/*.py
+  pull_request:
+    branches:
+      - master
+      - dev
+    paths:
+      - src/**/*.py
+      - tests/**/*.py
+
+jobs:
+  ruff_linter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: ./.github/actions/setup_python_environment
+
+      - name: Run Ruff Linter
+        run: uv run ruff check --output-format=github .
