@@ -204,6 +204,8 @@ class GameMode(EnumReprMixin, IntEnum):
     LAWLESS_FRONTIER = 93
     """_No description given by bungie._ """
 
+    ONSLAUGHT = 94
+    """Bungie API Docs not updated...based on Gemini query"""
 
 
 @final

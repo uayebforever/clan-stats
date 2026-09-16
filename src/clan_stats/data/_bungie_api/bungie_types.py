@@ -25,12 +25,6 @@ validation_aliases = AliasGenerator(
 ALLOW_EXTRA = ConfigDict(extra="allow", from_attributes=True, alias_generator=validation_aliases)
 
 
-def unexpectedly_missing_string(value: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
-    if value is bungio.models.MISSING or value is None:
-        return "???"
-    return value  # pyright: ignore [reportAny]
-
-
 class BungieTypeBase(BaseModel):
 
     @field_validator('*', mode='before')
@@ -38,7 +32,8 @@ class BungieTypeBase(BaseModel):
     def default_value_validator(cls, value: Any, info: ValidationInfo) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
         """This validator matches special default values provided by e.g. Bungio API"""
         if value is bungio.models.MISSING:
-            log.debug("Using default for <MISSING> field at %s", info)
+            # log.debug("Using default for <MISSING> field at %s", info)
+            log.debug(f"{info.field_name}: {info.config.get('title')} {info.data}")
             raise PydanticUseDefault()
         return value  # pyright: ignore [reportAny]
 
@@ -70,7 +65,7 @@ class UserInfoCard(BungieTypeBase):
     membershipId: int
 
     # For some reason, long running activities with many players have a Post game with missing names.
-    displayName: Annotated[str, BeforeValidator(unexpectedly_missing_string)]
+    displayName: str = Field(default="???")
 
     # applicableMembershipTypes: smart_optional(Sequence[int]) = Field(default_factory=list)
     applicableMembershipTypes: Any = Field(default_factory=list)

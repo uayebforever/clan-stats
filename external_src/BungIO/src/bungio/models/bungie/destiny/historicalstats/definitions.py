@@ -189,6 +189,9 @@ class DestinyActivityModeType(BaseEnum):
     LAWLESS_FRONTIER = 93
     """_No description given by bungie._ """
 
+    ONSLAUGHT = 94
+    """_No description given by bungie._ """
+
 
 @custom_define()
 class DestinyHistoricalStatsDefinition(ManifestModel):
