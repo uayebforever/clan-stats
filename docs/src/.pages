@@ -1,0 +1,9 @@
+nav:
+  - Home:
+    - Home: index.md
+    - Getting Started: installation.md
+    - Why BungIO?: why_bungio.md
+    - Contributing: contributing.md
+    - License: license.md
+  - Guides
+  - API Reference
