@@ -150,16 +150,33 @@ wheels = [
 [[package]]
 name = "bungio"
 version = "1.7.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "external_src/BungIO" }
 dependencies = [
     { name = "aiohttp" },
     { name = "attrs" },
     { name = "sqlalchemy", extra = ["aiosqlite"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/90/3aff7137d60aadfba47d819a9742e959829f0540b9705e9d0019b7d286ba/bungio-1.7.0.tar.gz", hash = "sha256:f3c48cf5f366b4b7f5756231bec1d533709990be26b34fc47d351b5491900698", size = 305554, upload_time = "2025-12-08T21:37:21.686Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/62/4d883e1deab1e095502662bc7017a3fe94c728880c513c30eb41ef58572d/bungio-1.7.0-py3-none-any.whl", hash = "sha256:f4270f01530511aff14d5980f9d47e7a2867a4a62bc0a6588230864d24c9cd34", size = 412318, upload_time = "2025-12-08T21:37:19.637Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = "~=3.8" },
+    { name = "aiohttp-client-cache", marker = "extra == 'cache'", specifier = "~=0.7" },
+    { name = "attrs", specifier = "~=22.1" },
+    { name = "brotli", marker = "extra == 'speedups'", specifier = "~=1.0" },
+    { name = "charset-normalizer", marker = "extra == 'speedups'", specifier = "~=3.3" },
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = "~=1.6" },
+    { name = "mkdocs-autorefs", marker = "extra == 'docs'", specifier = "~=1.0" },
+    { name = "mkdocs-awesome-pages-plugin", marker = "extra == 'docs'", specifier = "~=2.9" },
+    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = "~=9.5" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = "~=0.25" },
+    { name = "orjson", marker = "extra == 'speedups'", specifier = "~=3.6" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = "~=3.7" },
+    { name = "pytest", marker = "extra == 'test'", specifier = "~=7.1" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = "~=0.18" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.5" },
+    { name = "sqlalchemy", extras = ["aiosqlite"], specifier = "~=1.4" },
 ]
+provides-extras = ["speedups", "cache", "docs", "test", "dev"]
 
 [[package]]
 name = "cachetools"
@@ -221,7 +238,7 @@ requires-dist = [
     { name = "aiobungie" },
     { name = "aiohttp" },
     { name = "blessed" },
-    { name = "bungio", specifier = ">=1.7.0" },
+    { name = "bungio", editable = "external_src/BungIO" },
     { name = "pydantic" },
     { name = "pydantic-yaml" },
     { name = "sqlalchemy", specifier = "~=1.4" },

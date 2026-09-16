@@ -42,3 +42,6 @@ clan-stats = "clan_stats.__main__:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+bungio = { path = "external_src/BungIO", editable = true }
