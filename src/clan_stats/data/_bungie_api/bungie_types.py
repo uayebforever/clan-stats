@@ -1,5 +1,8 @@
+import logging
 from datetime import datetime
 from typing import Optional, Sequence, Mapping, Any, Annotated
+
+from pydantic_core.core_schema import ValidationInfo
 
 import bungio
 import bungio.models
@@ -8,6 +11,8 @@ from pydantic_core import PydanticUseDefault
 
 from clan_stats.data._bungie_api.bungie_enums import MembershipType, CharacterType, GameMode
 from clan_stats.util.casing import to_snake_case
+
+log = logging.getLogger(__name__)
 
 
 def display_name_from_name_and_code(name: str, code: int) -> str:
@@ -30,9 +35,10 @@ class BungieTypeBase(BaseModel):
 
     @field_validator('*', mode='before')
     @classmethod
-    def default_value_validator(cls, value: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
+    def default_value_validator(cls, value: Any, info: ValidationInfo) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
         """This validator matches special default values provided by e.g. Bungio API"""
         if value is bungio.models.MISSING:
+            log.debug("Using default for <MISSING> field at %s", info)
             raise PydanticUseDefault()
         return value  # pyright: ignore [reportAny]
 
@@ -76,18 +82,22 @@ class GroupUserInfoCard(BungieTypeBase):
 
     membershipId: int
     membershipType: MembershipType
-    LastSeenDisplayName: str
+    LastSeenDisplayName: Optional[str] = Field(default=None)
     LastSeenDisplayNameType: MembershipType
     bungieGlobalDisplayName: Optional[str] = Field(default=None)
     bungieGlobalDisplayNameCode: Optional[int] = Field(default=None)
-    displayName: str
+    displayName: Optional[str] = Field(default=None)
     applicableMembershipTypes: Sequence[MembershipType]
 
     def best_name(self) -> str:
         if (self.bungieGlobalDisplayName is not None
                 and self.bungieGlobalDisplayNameCode is not None):
             return display_name_from_name_and_code(self.bungieGlobalDisplayName, self.bungieGlobalDisplayNameCode)
-        return self.LastSeenDisplayName
+        elif self.LastSeenDisplayName is not None:
+            return self.LastSeenDisplayName
+        elif self.displayName is not None:
+            return self.displayName
+        return str(self.membershipId)
 
 
 class UserMembershipData(BungieTypeBase):
