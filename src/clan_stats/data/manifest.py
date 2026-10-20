@@ -49,7 +49,8 @@ class SqliteManifest(Manifest):
         return activity_name_structure["displayProperties"]["name"]
 
     def get_activity_definitions(self) -> Sequence[ActivityDefinition]:
-        definitions = (_activity_definition_from_json(blob)
+        mode_types = self._get_mode_types_by_hash()
+        definitions = (_activity_definition_from_json(blob, mode_types)
                        for blob in self._get_activity_name_data().values())
         return [d for d in definitions if d is not None]
 
@@ -67,6 +68,17 @@ class SqliteManifest(Manifest):
         return {k: json.loads(v) for k, v in
                 self.dbconnection.cursor().execute("SELECT * FROM DestinyActivityDefinition").fetchall()}
 
+    @cache
+    def _get_mode_types_by_hash(self) -> Mapping[int, int]:
+        """Map DestinyActivityModeDefinition hashes to their GameMode values."""
+        self._check_loaded()
+        try:
+            rows = self.dbconnection.cursor().execute("SELECT json FROM DestinyActivityModeDefinition").fetchall()
+        except sqlite3.OperationalError:
+            return {}
+        modes = (json.loads(blob) for (blob,) in rows)
+        return {m["hash"]: m["modeType"] for m in modes if "hash" in m and "modeType" in m}
+
     def _convert_hash(self, activity_hash):
         # see https://github.com/vpzed/Destiny2-API-Info/wiki/API-Introduction-Part-3-Manifest#converting-hashes-for-the-sqlite-db
         if (activity_hash & (1 << (32 - 1))) != 0:
@@ -75,7 +87,8 @@ class SqliteManifest(Manifest):
             return activity_hash
 
 
-def _activity_definition_from_json(blob: Mapping[str, Any]) -> Optional[ActivityDefinition]:
+def _activity_definition_from_json(blob: Mapping[str, Any],
+                                   mode_types_by_hash: Mapping[int, int]) -> Optional[ActivityDefinition]:
     if blob.get("redacted", False):
         return None
     name = blob.get("displayProperties", {}).get("name", "").strip()
@@ -87,7 +100,7 @@ def _activity_definition_from_json(blob: Mapping[str, Any]) -> Optional[Activity
         name=name,
         base_name=base_name,
         variant=variant,
-        modes=_game_modes(blob),
+        modes=_game_modes(blob, mode_types_by_hash),
         activity_type_hash=blob.get("activityTypeHash"))
 
 
@@ -105,15 +118,18 @@ def _split_variant(name: str, original_name: str):
     return base_name, variant if variant else NORMAL_VARIANT
 
 
-def _game_modes(blob: Mapping[str, Any]) -> Sequence[GameMode]:
+def _game_modes(blob: Mapping[str, Any], mode_types_by_hash: Mapping[int, int]) -> Sequence[GameMode]:
     """The mode an activity is classified under.
 
-    directActivityModeType is the activity's own mode. activityModeTypes also lists broader groupings and can
-    include modes the activity does not belong to, so it is only used when there is no direct mode.
+    activityTypeHash is preferred where it names an activity mode: stale definitions can carry a wrong
+    directActivityModeType (e.g. an old "Crota's End: Normal" marked as a dungeon while its activity type is
+    raid). Then directActivityModeType, then activityModeTypes, which also lists broader groupings, only when
+    there is nothing more specific.
     """
-    direct = _game_mode(blob.get("directActivityModeType"))
-    if direct is not None:
-        return [direct]
+    for mode in (_game_mode(mode_types_by_hash.get(blob.get("activityTypeHash", 0))),
+                 _game_mode(blob.get("directActivityModeType"))):
+        if mode is not None:
+            return [mode]
     modes = []
     for value in blob.get("activityModeTypes") or []:
         mode = _game_mode(value)

@@ -24,18 +24,24 @@ DP = 3817322389
 DUALITY = 2823159265
 REDACTED = 1
 STRANGE_MODE = 2
-CROTA = 4179289725
+CROTA = 107319834
+CROTA_STALE = 4179289725
 NO_DIRECT_MODE = 3
 
 
-def _definition(hash_, name, original_name, modes, redacted=False, direct_mode=None):
+RAID_MODE_HASH = 2043403989
+DUNGEON_MODE_HASH = 608898761
+MODE_DEFINITIONS = [{"hash": RAID_MODE_HASH, "modeType": RAID}, {"hash": DUNGEON_MODE_HASH, "modeType": DUNGEON}]
+
+
+def _definition(hash_, name, original_name, modes, redacted=False, direct_mode=None, activity_type_hash=0):
     return {
         "hash": hash_,
         "displayProperties": {"name": name},
         "originalDisplayProperties": {"name": original_name},
         "directActivityModeType": modes[0] if direct_mode is None else direct_mode,
         "activityModeTypes": modes,
-        "activityTypeHash": 2043403989,
+        "activityTypeHash": activity_type_hash,
         "redacted": redacted,
     }
 
@@ -51,8 +57,11 @@ DEFINITIONS = [
     _definition(DUALITY, "Duality", "Duality", [DUNGEON, PVE]),
     _definition(REDACTED, "Classified", "Classified", [RAID], redacted=True),
     _definition(STRANGE_MODE, "Mystery", "Mystery", [9999]),
-    # activityModeTypes can list modes the activity does not belong to
-    _definition(CROTA, "Crota's End", "Crota's End", [RAID, DUNGEON, PVE]),
+    # The real manifest has a stale Crota's End entry whose direct mode is dungeon but activity type is raid
+    _definition(CROTA, "Crota's End: Standard", "Crota's End", [RAID, PVE], activity_type_hash=RAID_MODE_HASH),
+    _definition(CROTA_STALE, "Crota's End: Normal", "Crota's End", [DUNGEON, PVE],
+                activity_type_hash=RAID_MODE_HASH),
+    _definition(DUALITY + 1, "Duality: Master", "Duality", [DUNGEON, PVE], activity_type_hash=DUNGEON_MODE_HASH),
     _definition(NO_DIRECT_MODE, "Fallback", "Fallback", [DUNGEON, PVE], direct_mode=0),
 ]
 
@@ -68,6 +77,9 @@ def manifest(tmp_path: Path) -> SqliteManifest:
     connection.execute("CREATE TABLE DestinyActivityDefinition (id INTEGER PRIMARY KEY NOT NULL, json BLOB)")
     connection.executemany("INSERT INTO DestinyActivityDefinition VALUES (?, ?)",
                            [(_signed(d["hash"]), json.dumps(d)) for d in DEFINITIONS])
+    connection.execute("CREATE TABLE DestinyActivityModeDefinition (id INTEGER PRIMARY KEY NOT NULL, json BLOB)")
+    connection.executemany("INSERT INTO DestinyActivityModeDefinition VALUES (?, ?)",
+                           [(_signed(d["hash"]), json.dumps(d)) for d in MODE_DEFINITIONS])
     connection.commit()
     connection.close()
     return SqliteManifest(path)
@@ -88,6 +100,8 @@ def test_activity_definitions_split_variants(manifest):
     assert (definitions[VOG_MASTER].base_name, definitions[VOG_MASTER].variant) == ("Vault of Glass", "Master")
     assert definitions[LW].modes == [GameMode.RAID]
     assert definitions[CROTA].modes == [GameMode.RAID]
+    assert definitions[CROTA_STALE].modes == [GameMode.RAID]
+    assert definitions[DUALITY + 1].modes == [GameMode.DUNGEON]
     assert definitions[NO_DIRECT_MODE].modes == [GameMode.DUNGEON, GameMode.ALL_PV_E]
     assert definitions[STRANGE_MODE].modes == []
 
@@ -128,7 +142,7 @@ def test_catalog_groups_variants(catalog):
     assert raids["Vow of the Disciple"].variants == {"Master": frozenset({VOTD_MASTER}),
                                                      "Normal": frozenset({VOTD_NORMAL})}
     assert "Classified" not in raids
-    assert "Crota's End" in raids
+    assert raids["Crota's End"].variants == {"Normal": frozenset({CROTA_STALE}), "Standard": frozenset({CROTA})}
     assert "Crota's End" not in [a.name for a in catalog.activities(GameMode.DUNGEON)]
     assert GameMode.DUNGEON in catalog.types()
 
