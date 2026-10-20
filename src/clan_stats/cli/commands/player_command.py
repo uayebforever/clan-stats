@@ -18,11 +18,18 @@ class PlayerActivityReportCommand(Command):
                             default=30,
                             type=int,
                             help="How many days of activity history to search.")
+        parser.add_argument("--filter",
+                            action="append",
+                            metavar="TYPE[:ACTIVITY[:VARIANT]]",
+                            help="Only show matching activities, e.g. 'raid', 'raid:LW' or 'raid:VotD:master'. "
+                                 "Activities and variants match by name, initials or a unique part of the name. "
+                                 "Repeat to include several. See 'clan-stats activities' for valid values.")
 
     def execute(self, args, config: ClanStatsConfig):
         player_activity_summary.activity_summary(get_data_retriever(DataRetrieverType(args.backend), config),
                                                  args.player_id,
-                                                 days=args.past_days)
+                                                 days=args.past_days,
+                                                 filters=args.filter)
 
 
 @final
