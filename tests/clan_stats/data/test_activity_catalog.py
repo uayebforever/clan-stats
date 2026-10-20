@@ -24,14 +24,16 @@ DP = 3817322389
 DUALITY = 2823159265
 REDACTED = 1
 STRANGE_MODE = 2
+CROTA = 4179289725
+NO_DIRECT_MODE = 3
 
 
-def _definition(hash_, name, original_name, modes, redacted=False):
+def _definition(hash_, name, original_name, modes, redacted=False, direct_mode=None):
     return {
         "hash": hash_,
         "displayProperties": {"name": name},
         "originalDisplayProperties": {"name": original_name},
-        "directActivityModeType": modes[0],
+        "directActivityModeType": modes[0] if direct_mode is None else direct_mode,
         "activityModeTypes": modes,
         "activityTypeHash": 2043403989,
         "redacted": redacted,
@@ -49,6 +51,9 @@ DEFINITIONS = [
     _definition(DUALITY, "Duality", "Duality", [DUNGEON, PVE]),
     _definition(REDACTED, "Classified", "Classified", [RAID], redacted=True),
     _definition(STRANGE_MODE, "Mystery", "Mystery", [9999]),
+    # activityModeTypes can list modes the activity does not belong to
+    _definition(CROTA, "Crota's End", "Crota's End", [RAID, DUNGEON, PVE]),
+    _definition(NO_DIRECT_MODE, "Fallback", "Fallback", [DUNGEON, PVE], direct_mode=0),
 ]
 
 
@@ -81,7 +86,9 @@ def test_activity_definitions_split_variants(manifest):
     assert (definitions[VOTD_NORMAL].base_name, definitions[VOTD_NORMAL].variant) == ("Vow of the Disciple", "Normal")
     assert (definitions[VOTD_MASTER].base_name, definitions[VOTD_MASTER].variant) == ("Vow of the Disciple", "Master")
     assert (definitions[VOG_MASTER].base_name, definitions[VOG_MASTER].variant) == ("Vault of Glass", "Master")
-    assert definitions[LW].modes == [GameMode.RAID, GameMode.ALL_PV_E]
+    assert definitions[LW].modes == [GameMode.RAID]
+    assert definitions[CROTA].modes == [GameMode.RAID]
+    assert definitions[NO_DIRECT_MODE].modes == [GameMode.DUNGEON, GameMode.ALL_PV_E]
     assert definitions[STRANGE_MODE].modes == []
 
 
@@ -121,6 +128,8 @@ def test_catalog_groups_variants(catalog):
     assert raids["Vow of the Disciple"].variants == {"Master": frozenset({VOTD_MASTER}),
                                                      "Normal": frozenset({VOTD_NORMAL})}
     assert "Classified" not in raids
+    assert "Crota's End" in raids
+    assert "Crota's End" not in [a.name for a in catalog.activities(GameMode.DUNGEON)]
     assert GameMode.DUNGEON in catalog.types()
 
 

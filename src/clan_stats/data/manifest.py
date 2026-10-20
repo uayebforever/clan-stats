@@ -106,15 +106,25 @@ def _split_variant(name: str, original_name: str):
 
 
 def _game_modes(blob: Mapping[str, Any]) -> Sequence[GameMode]:
-    mode_values = list(blob.get("activityModeTypes") or [])
-    if blob.get("directActivityModeType") is not None:
-        mode_values.insert(0, blob["directActivityModeType"])
+    """The mode an activity is classified under.
+
+    directActivityModeType is the activity's own mode. activityModeTypes also lists broader groupings and can
+    include modes the activity does not belong to, so it is only used when there is no direct mode.
+    """
+    direct = _game_mode(blob.get("directActivityModeType"))
+    if direct is not None:
+        return [direct]
     modes = []
-    for value in mode_values:
-        try:
-            mode = GameMode(value)
-        except ValueError:
-            continue
-        if mode != GameMode.NONE and mode not in modes:
+    for value in blob.get("activityModeTypes") or []:
+        mode = _game_mode(value)
+        if mode is not None and mode not in modes:
             modes.append(mode)
     return modes
+
+
+def _game_mode(value: Any) -> Optional[GameMode]:
+    try:
+        mode = GameMode(value)
+    except (ValueError, TypeError):
+        return None
+    return None if mode == GameMode.NONE else mode
