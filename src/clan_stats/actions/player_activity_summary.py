@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
+from clan_stats.data.activity_catalog import ActivityCatalog, filter_activities
 from clan_stats.data.manifest import Manifest
 from clan_stats.data.retrieval.data_retriever import DataRetriever
 from clan_stats.data.types.activities import ActivityWithPost, filter_activities_by_date
@@ -13,9 +14,10 @@ from clan_stats.util.time import now, days_ago
 
 logger = logging.getLogger(__name__)
 
-def activity_summary(data_retriever: DataRetriever, player_id: int, days: int = 30):
+def activity_summary(data_retriever: DataRetriever, player_id: int, days: int = 30,
+                     filters: Optional[Sequence[str]] = None):
     player, clan, manifest, activities_with_post = asyncio.run(_get_data(data_retriever, player_id,
-                                                                         days))
+                                                                         days, filters))
 
     clan_member_ids = _clan_member_ids_without_player(clan, player)
 
@@ -30,13 +32,18 @@ def activity_summary(data_retriever: DataRetriever, player_id: int, days: int = 
         term.print_activity_summary(activity, manifest, teammates, clanmates=activity_is_with_clanmates)
 
 
-async def _get_data(data_retriever: DataRetriever, player_id: int, days: int) -> Tuple[
-    Player, Clan, Manifest, Sequence[ActivityWithPost]]:
+async def _get_data(data_retriever: DataRetriever,
+                    player_id: int,
+                    days: int,
+                    filters: Optional[Sequence[str]] = None
+                    ) -> Tuple[Player, Clan, Manifest, Sequence[ActivityWithPost]]:
     async with data_retriever:
+        manifest = await data_retriever.get_manifest()
+        activity_filters = ActivityCatalog.from_manifest(manifest).resolve_all(filters) if filters else []
+        logger.debug("Activity filters %s", activity_filters)
         player = await data_retriever.get_player(player_id)
         logger.debug("Minimal player for given player id %s", player)
         clan = await data_retriever.get_clan_for_player(player)
-        manifest = await data_retriever.get_manifest()
         ago = days_ago(days)
         activities = await data_retriever.get_activities_for_player(
             player,
@@ -44,7 +51,7 @@ async def _get_data(data_retriever: DataRetriever, player_id: int, days: int) ->
 
         logger.debug("Limiting to %s", ago)
         activities_with_post = await asyncio.gather(*[data_retriever.get_post_for_activity(a)
-            for a in filter_activities_by_date(activities, ago)])
+            for a in filter_activities(filter_activities_by_date(activities, ago), activity_filters)])
 
     return player, clan, manifest, activities_with_post
 

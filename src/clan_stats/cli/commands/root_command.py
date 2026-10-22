@@ -2,6 +2,7 @@ import sys
 from argparse import ArgumentParser
 
 from . import version
+from .activities_command import ActivitiesCommand
 from .clan_command import ClanCommand
 from .command import Command
 from .player_command import PlayerCommand
@@ -15,7 +16,7 @@ from ...util.itertools import first
 class RootCommand(Command):
     name = "constellation"
     help = "A tool to manage constellations of nebulae sandboxes."
-    subcommands = [ClanCommand(), VersionCommand(), TestCommand(), PlayerCommand()]
+    subcommands = [ClanCommand(), VersionCommand(), TestCommand(), PlayerCommand(), ActivitiesCommand()]
 
     def configure_arg_parser(self, parser: ArgumentParser, config: ClanStatsConfig) -> None:
         parser.add_argument(
