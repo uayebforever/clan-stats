@@ -35,7 +35,8 @@ from clan_stats.util.time import require_tz_aware_datetime
 
 logger = logging.getLogger(__name__)
 
-_PAGE_SIZE = 50
+# Largest page Bungie allows for activity history.
+_PAGE_SIZE = 250
 
 
 class BungioDataRetriever(DataRetriever):
@@ -128,6 +129,7 @@ class BungioDataRetriever(DataRetriever):
                 player.primary_membership.membership_type,
                 c.character_id,
                 mode=int(mode),
+                min_start_date=min_start_date,
             )
             for c in characters]))
 
